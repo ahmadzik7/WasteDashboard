@@ -583,34 +583,78 @@ function setPeriod(p) {
 
 const fmtDate = d => d.toISOString().split('T')[0];
 
+
 // ════════════════════════════════════════════════════════════
-// FETCH
+// FETCH & RENDER — Optimized (readAll) — COMPATIBLE dengan struktur data Anda
 // ════════════════════════════════════════════════════════════
 async function fetchAndRender() {
-  if (!CFG.url) { openConfig(); return; }
+  if (!CFG.url || !CFG.folder) { openConfig(); return; }
+  
   const btn = document.getElementById('btn-refresh');
+  const originalBtnText = btn.textContent;
   btn.textContent = '⟳'; btn.disabled = true;
+  showToast('🔄 Memuat data dari semua shift...', 'info');
+  
   try {
-    const url = `${CFG.url}?action=list&folderId=${CFG.folder}&t=${Date.now()}`;
+    // ✅ Single request: baca SEMUA file JSON dalam folder
+    const url = `${CFG.url}?action=readAll&folderId=${CFG.folder}&t=${Date.now()}`;
     const res = await fetch(url);
-    const json = await res.json();
-    if (!json.files) throw new Error('Tidak ada file list');
-    const records = [];
-    for (const f of json.files.slice(0, 200)) {
-      try {
-        const r2 = await fetch(`${CFG.url}?action=read&fileId=${f.id}&t=${Date.now()}`);
-        const data = await r2.json();
-        if (data?.header) records.push(data);
-      } catch {}
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    
+    const result = await res.json();
+    
+    // ✅ Validasi response API
+    if (result.status !== "ok") {
+      throw new Error(result.msg || "Response status tidak ok");
     }
+    
+    // ✅ Gabungkan data dari semua file shift
+    // Format result.data: [{shift, fileName, data: [ {...}, {...} ]}, ...]
+    const records = [];
+    
+    for (const shiftFile of result.data) {
+      // Normalisasi: shiftFile.data bisa array atau object
+      const items = Array.isArray(shiftFile.data) ? shiftFile.data : [shiftFile.data];
+      
+      for (const item of items) {
+        // ✅ PENTING: Pastikan item punya struktur yang dashboard harapkan
+        // Jika file JSON dari WasteHub sudah punya header/entries/gf/kardus, langsung push
+        if (item && typeof item === 'object') {
+          records.push({
+            ...item,
+            // Tambahkan metadata shift untuk filter opsional
+            _meta: {
+              shift: shiftFile.shift,
+              fileName: shiftFile.fileName,
+              modified: shiftFile.modified,
+              source: 'drive'
+            }
+          });
+        }
+      }
+    }
+    
+    // ✅ Update state global & UI
     allRecords = records;
     document.getElementById('sync-lbl').textContent = new Date().toLocaleTimeString('id-ID');
-    showToast('✓ ' + records.length + ' sesi dimuat', 'ok');
+    
+    const msg = records.length > 0 
+      ? `✓ ${records.length} record dari ${result.count} file shift`
+      : `⚠ Tidak ada data valid ditemukan`;
+      
+    showToast(msg, records.length > 0 ? 'ok' : 'warn');
+    
+    // ✅ Render dashboard (fungsi Anda yang sudah ada)
     renderDashboard();
+    
   } catch (err) {
+    console.error("❌ Fetch error:", err);
     showToast('⚠ Gagal: ' + err.message, 'err');
+  } finally {
+    btn.textContent = originalBtnText; 
+    btn.disabled = false;
   }
-  btn.textContent = '⟳ Refresh'; btn.disabled = false;
 }
 
 // ════════════════════════════════════════════════════════════
