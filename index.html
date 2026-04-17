@@ -3,481 +3,388 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>WasteHub Analytics — Dashboard</title>
+<title>WasteHub Analytics</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  /* Light palette */
-  --bg:#f5f6f8;
-  --surface:#ffffff;
-  --surface2:#f9fafb;
-  --surface3:#f1f3f5;
-  --bdr:#e2e5ea;
-  --bdr2:#d1d5db;
-
-  /* Brand */
-  --acc:#2563eb;
-  --acc-light:#eff6ff;
-  --acc-mid:#bfdbfe;
-  --grn:#16a34a;
-  --grn-light:#f0fdf4;
-  --warn:#d97706;
-  --warn-light:#fffbeb;
-  --red:#dc2626;
-  --red-light:#fef2f2;
-  --purple:#7c3aed;
-  --purple-light:#f5f3ff;
-
-  /* Text */
-  --tx:#111827;
-  --tx2:#6b7280;
-  --tx3:#9ca3af;
-  --tx-inv:#ffffff;
-
-  /* Typography */
-  --font:'Inter',sans-serif;
-  --mono:'JetBrains Mono',monospace;
-  --r:8px;
-  --r2:12px;
-
-  /* Shadows */
-  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
-  --sh2:0 4px 12px rgba(0,0,0,.1);
+  --bg:#f4f6f9;--surface:#fff;--s2:#f8f9fb;--s3:#f0f2f5;
+  --bdr:#e2e6ea;--bdr2:#cdd1d9;
+  --acc:#2563eb;--acc-l:#eff6ff;--acc-m:#bfdbfe;
+  --grn:#16a34a;--grn-l:#f0fdf4;
+  --warn:#d97706;--warn-l:#fffbeb;
+  --red:#dc2626;--red-l:#fef2f2;
+  --pur:#7c3aed;--pur-l:#f5f3ff;
+  --tx:#111827;--tx2:#6b7280;--tx3:#9ca3af;
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:8px;--r2:12px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 4px 16px rgba(0,0,0,.1);
+  --sb:220px;--tb:54px;
 }
-
-html{height:100%;}
-body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px;min-height:100vh;display:flex;flex-direction:column;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px;display:flex;flex-direction:column;}
 input,select,button,textarea{font-family:var(--font);}
+button{cursor:pointer;}
 
-/* ══════════════════════════════════════
-   LAYOUT: TOPBAR + SIDEBAR + CONTENT
-══════════════════════════════════════ */
+/* ── TOPBAR ── */
 .topbar{
+  position:fixed;top:0;left:0;right:0;height:var(--tb);z-index:300;
   background:var(--surface);border-bottom:1px solid var(--bdr);
-  height:56px;display:flex;align-items:center;padding:0 20px;gap:16px;
-  position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:var(--sh);
+  display:flex;align-items:center;padding:0 16px;gap:12px;box-shadow:var(--sh);
 }
-.brand{display:flex;align-items:center;gap:10px;width:220px;flex-shrink:0;}
-.brand-logo{
-  width:34px;height:34px;background:var(--acc);border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:16px;color:#fff;font-weight:700;letter-spacing:-1px;
-}
-.brand-text .name{font-size:15px;font-weight:700;color:var(--tx);}
-.brand-text .name em{color:var(--acc);font-style:normal;}
-.brand-text .sub{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;}
+.logo{display:flex;align-items:center;gap:9px;width:var(--sb);flex-shrink:0;}
+.logo-box{width:32px;height:32px;background:var(--acc);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;letter-spacing:-1px;flex-shrink:0;}
+.logo-name{font-size:15px;font-weight:700;color:var(--tx);}
+.logo-name em{color:var(--acc);font-style:normal;}
+.logo-sub{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;}
 
-.topbar-center{flex:1;display:flex;align-items:center;gap:12px;}
+.tb-center{flex:1;display:flex;align-items:center;gap:10px;min-width:0;}
+.period-group{display:flex;background:var(--s3);border:1px solid var(--bdr);border-radius:var(--r);padding:3px;gap:2px;flex-shrink:0;}
+.pg-btn{padding:4px 13px;border:none;background:none;color:var(--tx2);font-size:12px;font-weight:500;border-radius:5px;transition:all .12s;white-space:nowrap;}
+.pg-btn.on{background:var(--surface);color:var(--acc);font-weight:600;box-shadow:var(--sh);}
+.pg-btn:hover:not(.on){color:var(--tx);}
 
-/* Period pills in topbar */
-.period-pills{display:flex;gap:4px;background:var(--surface3);border:1px solid var(--bdr);border-radius:8px;padding:3px;}
-.pp{padding:5px 14px;border-radius:6px;border:none;background:none;color:var(--tx2);
-  font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}
-.pp.on{background:var(--surface);color:var(--acc);box-shadow:var(--sh);font-weight:600;}
-.pp:hover:not(.on){color:var(--tx);}
+.dr{display:flex;align-items:center;gap:5px;}
+.di{height:28px;background:var(--surface);border:1px solid var(--bdr);color:var(--tx);
+  padding:0 8px;border-radius:var(--r);font-family:var(--mono);font-size:11px;}
+.di:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-l);}
+.sep{color:var(--tx3);font-size:11px;}
 
-/* Date range */
-.date-range{display:flex;align-items:center;gap:6px;margin-left:8px;}
-.date-inp{background:var(--surface);border:1px solid var(--bdr);color:var(--tx);
-  padding:5px 9px;border-radius:var(--r);font-family:var(--mono);font-size:11px;height:30px;}
-.date-inp:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-light);}
-.sep{color:var(--tx3);font-size:12px;}
-
-.topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
-.live-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;
-  background:var(--grn-light);border:1px solid #bbf7d0;border-radius:20px;}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--grn);animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-.live-lbl{font-size:10px;color:var(--grn);font-weight:600;}
+.tb-right{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0;}
+.live-pill{display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--grn-l);border:1px solid #bbf7d0;border-radius:20px;}
+.ld{width:6px;height:6px;border-radius:50%;background:var(--grn);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+.live-lbl{font-size:10px;font-weight:600;color:var(--grn);}
 .sync-lbl{font-size:10px;color:var(--tx3);font-family:var(--mono);}
 
-.btn{
-  padding:6px 14px;border-radius:var(--r);font-size:12px;font-weight:500;
-  cursor:pointer;border:1px solid var(--bdr);background:var(--surface);color:var(--tx2);
-  transition:all .15s;white-space:nowrap;height:32px;display:inline-flex;align-items:center;gap:5px;
-}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:0 12px;height:30px;border-radius:var(--r);border:1px solid var(--bdr);background:var(--surface);color:var(--tx2);font-size:12px;font-weight:500;transition:all .12s;white-space:nowrap;}
 .btn:hover{border-color:var(--acc);color:var(--acc);}
-.btn-primary{background:var(--acc);color:#fff;border-color:var(--acc);}
-.btn-primary:hover{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}
-.btn-green{background:var(--grn);color:#fff;border-color:var(--grn);}
-.btn-green:hover{background:#15803d;border-color:#15803d;color:#fff;}
-.btn-warn{background:var(--warn);color:#fff;border-color:var(--warn);}
-.btn-danger{background:var(--red);color:#fff;border-color:var(--red);}
-.btn-sm{padding:4px 10px;font-size:11px;height:26px;}
-.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-p{background:var(--acc);color:#fff;border-color:var(--acc);}
+.btn-p:hover{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}
+.btn-g{background:var(--grn);color:#fff;border-color:var(--grn);}
+.btn-g:hover{background:#15803d;color:#fff;border-color:#15803d;}
+.btn-r{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-r:hover{background:#b91c1c;color:#fff;}
+.btn-xs{height:24px;padding:0 8px;font-size:11px;}
+.btn-sm{height:28px;padding:0 10px;font-size:11px;}
+.btn:disabled{opacity:.4;pointer-events:none;}
 
 /* ── SIDEBAR ── */
-.layout{display:flex;padding-top:56px;min-height:100vh;}
 .sidebar{
-  width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--bdr);
-  position:fixed;top:56px;left:0;bottom:0;overflow-y:auto;z-index:100;
-  display:flex;flex-direction:column;
+  position:fixed;top:var(--tb);left:0;bottom:0;width:var(--sb);z-index:200;
+  background:var(--surface);border-right:1px solid var(--bdr);
+  display:flex;flex-direction:column;overflow-y:auto;
 }
-.sidebar-section{padding:12px 8px 4px;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;font-weight:600;}
-.nav-item{
-  display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:6px;
-  color:var(--tx2);font-size:13px;font-weight:500;cursor:pointer;
-  transition:all .12s;margin:1px 8px;border:none;background:none;width:calc(100% - 16px);text-align:left;
-}
-.nav-item:hover{background:var(--surface3);color:var(--tx);}
-.nav-item.on{background:var(--acc-light);color:var(--acc);font-weight:600;}
-.nav-item .nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
-.nav-item .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;
-  padding:1px 5px;border-radius:10px;min-width:18px;text-align:center;}
+.sb-sec{padding:14px 12px 4px;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;}
+.nav{display:flex;flex-direction:column;gap:1px;padding:0 8px;}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;border:none;
+  background:none;color:var(--tx2);font-size:13px;font-weight:500;text-align:left;width:100%;transition:all .1s;}
+.ni:hover{background:var(--s3);color:var(--tx);}
+.ni.on{background:var(--acc-l);color:var(--acc);font-weight:600;}
+.ni-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+.ni-badge{margin-left:auto;background:var(--warn);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;}
 
-.sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid var(--bdr);}
-.sidebar-footer .cfg-info{font-size:10px;color:var(--tx3);line-height:1.5;word-break:break-all;}
+.sb-footer{margin-top:auto;padding:10px 12px;border-top:1px solid var(--bdr);font-size:10px;color:var(--tx3);line-height:1.6;}
+.sb-footer a{color:var(--acc);text-decoration:none;}
 
-/* ── MAIN CONTENT ── */
-.content{margin-left:220px;flex:1;padding:20px 24px;min-width:0;}
+/* ── CONTENT ── */
+.content{margin-left:var(--sb);margin-top:var(--tb);padding:20px 22px;min-height:calc(100vh - var(--tb));min-width:0;}
 
 /* ── PAGE HEADER ── */
-.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
-.page-title{font-size:18px;font-weight:700;color:var(--tx);}
-.page-sub{font-size:12px;color:var(--tx2);margin-top:1px;}
-.page-actions{display:flex;gap:8px;align-items:center;}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
+.ph-left .title{font-size:18px;font-weight:700;}
+.ph-left .sub{font-size:11px;color:var(--tx2);margin-top:2px;}
+.ph-right{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 
 /* ── KPI STRIP ── */
-.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px;}
-@media(max-width:1200px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:700px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
-.kpi-card{
-  background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);
-  padding:14px 16px;box-shadow:var(--sh);position:relative;overflow:hidden;
-}
-.kpi-accent-bar{position:absolute;top:0;left:0;right:0;height:3px;}
-.kpi-label{font-size:10px;color:var(--tx2);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
-.kpi-value{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--tx);line-height:1;}
-.kpi-value.blue{color:var(--acc);}
-.kpi-value.green{color:var(--grn);}
-.kpi-value.warn{color:var(--warn);}
-.kpi-value.red{color:var(--red);}
-.kpi-delta{font-size:10px;margin-top:5px;font-family:var(--mono);display:flex;align-items:center;gap:3px;}
-.kpi-delta.up{color:var(--grn);}
-.kpi-delta.down{color:var(--red);}
-.kpi-delta.neutral{color:var(--tx3);}
-.kpi-sub{font-size:10px;color:var(--tx3);margin-top:4px;}
+.kpi-row{display:grid;gap:10px;margin-bottom:16px;}
+.kpi-row.c6{grid-template-columns:repeat(6,1fr);}
+.kpi-row.c4{grid-template-columns:repeat(4,1fr);}
+.kpi-row.c3{grid-template-columns:repeat(3,1fr);}
+@media(max-width:1300px){.kpi-row.c6{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:900px){.kpi-row.c6,.kpi-row.c4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.kpi-row.c6,.kpi-row.c4,.kpi-row.c3{grid-template-columns:1fr 1fr;}}
+
+.kc{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);padding:14px 15px;box-shadow:var(--sh);position:relative;overflow:hidden;}
+.kc-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:2px 2px 0 0;}
+.kc-label{font-size:9px;color:var(--tx2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+.kc-val{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--tx);line-height:1.1;}
+.kc-val.c-blue{color:var(--acc);}
+.kc-val.c-red{color:var(--red);}
+.kc-val.c-grn{color:var(--grn);}
+.kc-val.c-warn{color:var(--warn);}
+.kc-delta{font-size:10px;margin-top:4px;font-family:var(--mono);}
+.kc-delta.up{color:var(--grn);}
+.kc-delta.dn{color:var(--red);}
+.kc-delta.neu{color:var(--tx3);}
+.kc-sub{font-size:10px;color:var(--tx3);margin-top:3px;}
 
 /* ── CHART GRIDS ── */
-.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
-.grid-eq{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
-@media(max-width:1100px){.grid-2,.grid-eq{grid-template-columns:1fr;}}
-@media(max-width:900px){.grid-3{grid-template-columns:1fr 1fr;}}
-@media(max-width:600px){.grid-3{grid-template-columns:1fr;}}
+.g2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.g2e{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:1100px){.g2,.g2e{grid-template-columns:1fr;}}
+@media(max-width:900px){.g3{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.g3{grid-template-columns:1fr;}}
 
 /* ── CARD ── */
-.card{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);box-shadow:var(--sh);overflow:hidden;}
-.card-hdr{
-  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--bdr);background:var(--surface2);flex-wrap:wrap;gap:8px;
-}
-.card-title{font-size:12px;font-weight:600;color:var(--tx);display:flex;align-items:center;gap:7px;}
-.card-title .icon{font-size:15px;}
-.card-meta{font-size:10px;color:var(--tx2);font-family:var(--mono);}
-.card-body{padding:16px;}
-.card-body canvas{max-height:230px;}
-.card-body.tall canvas{max-height:290px;}
-.card-body.short canvas{max-height:170px;}
+.card{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);box-shadow:var(--sh);overflow:hidden;margin-bottom:12px;}
+.card-h{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);background:var(--s2);flex-wrap:wrap;gap:6px;}
+.card-title{font-size:12px;font-weight:600;color:var(--tx);display:flex;align-items:center;gap:6px;}
+.card-meta{font-size:10px;color:var(--tx2);}
+.card-b{padding:14px;}
+.card-b canvas{max-height:220px;}
+.card-b.tall canvas{max-height:275px;}
 
-/* ── TABLES ── */
+/* ── TABLE ── */
 .tbl-wrap{overflow-x:auto;}
 table.tbl{border-collapse:collapse;width:100%;font-size:12px;}
-table.tbl th{
-  background:var(--surface2);color:var(--tx2);padding:8px 12px;
-  border-bottom:2px solid var(--bdr);text-align:left;font-weight:600;
-  font-size:10px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;
-}
-table.tbl td{padding:8px 12px;border-bottom:1px solid var(--bdr);color:var(--tx);}
+table.tbl th{background:var(--s2);color:var(--tx2);padding:7px 12px;border-bottom:2px solid var(--bdr);text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+table.tbl td{padding:7px 12px;border-bottom:1px solid var(--bdr);color:var(--tx);vertical-align:middle;}
 table.tbl tr:last-child td{border-bottom:none;}
-table.tbl tr:hover td{background:var(--surface2);}
-table.tbl .mono{font-family:var(--mono);font-size:11px;}
-table.tbl .num{text-align:right;font-family:var(--mono);font-size:12px;}
+table.tbl tr:hover td{background:var(--s2);}
+table.tbl .m{font-family:var(--mono);font-size:11px;}
+table.tbl .r{text-align:right;}
 
 /* ── BADGES ── */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;
-  font-size:10px;font-weight:600;font-family:var(--mono);white-space:nowrap;}
-.badge-blue{background:var(--acc-light);color:var(--acc);border:1px solid var(--acc-mid);}
-.badge-green{background:var(--grn-light);color:var(--grn);border:1px solid #bbf7d0;}
-.badge-warn{background:var(--warn-light);color:var(--warn);border:1px solid #fde68a;}
-.badge-red{background:var(--red-light);color:var(--red);border:1px solid #fecaca;}
-.badge-gray{background:var(--surface3);color:var(--tx2);border:1px solid var(--bdr);}
-.badge-purple{background:var(--purple-light);color:var(--purple);border:1px solid #ddd6fe;}
+.badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--mono);white-space:nowrap;}
+.b-blue{background:var(--acc-l);color:var(--acc);border:1px solid var(--acc-m);}
+.b-grn{background:var(--grn-l);color:var(--grn);border:1px solid #bbf7d0;}
+.b-warn{background:var(--warn-l);color:var(--warn);border:1px solid #fde68a;}
+.b-red{background:var(--red-l);color:var(--red);border:1px solid #fecaca;}
+.b-gray{background:var(--s3);color:var(--tx2);border:1px solid var(--bdr);}
+.b-pur{background:var(--pur-l);color:var(--pur);border:1px solid #ddd6fe;}
 
-/* ── STATUS ── */
-.status-ok{color:var(--grn);font-weight:600;}
-.status-over{color:var(--red);font-weight:600;}
+/* ── FORMS ── */
+.fi{height:32px;background:var(--surface);border:1px solid var(--bdr);color:var(--tx);padding:0 10px;border-radius:var(--r);font-size:13px;width:100%;}
+.fi:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-l);}
+.fi-sm{height:28px;font-size:12px;}
+.fi-num{text-align:right;font-family:var(--mono);}
+.fi-mono{font-family:var(--mono);}
+select.fi{cursor:pointer;}
+.fl{display:block;font-size:10px;color:var(--tx2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.fg{margin-bottom:12px;}
+.fr{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
+.fc{flex:1;min-width:90px;}
 
-/* ── EMPTY / LOADING ── */
-.empty-state{text-align:center;padding:48px 24px;}
-.empty-icon{font-size:40px;margin-bottom:10px;}
-.empty-title{font-size:15px;font-weight:600;color:var(--tx2);margin-bottom:5px;}
-.empty-sub{font-size:12px;color:var(--tx3);line-height:1.6;}
-.spinner-wrap{display:flex;align-items:center;justify-content:center;gap:8px;padding:24px;color:var(--tx2);font-size:12px;}
-.spinner{width:16px;height:16px;border:2px solid var(--bdr2);border-top-color:var(--acc);border-radius:50%;animation:spin .6s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+/* ── BANNERS ── */
+.banner{display:flex;align-items:flex-start;gap:8px;padding:9px 13px;border-radius:var(--r);margin-bottom:12px;font-size:12px;line-height:1.6;}
+.ban-info{background:var(--acc-l);border:1px solid var(--acc-m);color:#1e40af;}
+.ban-warn{background:var(--warn-l);border:1px solid #fde68a;color:#92400e;}
+.ban-grn{background:var(--grn-l);border:1px solid #bbf7d0;color:#14532d;}
+.ban-red{background:var(--red-l);border:1px solid #fecaca;color:#991b1b;}
 
-/* ══════════════════════════════════════
-   MANUAL INPUT PANEL
-══════════════════════════════════════ */
-.mi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
-@media(max-width:800px){.mi-grid{grid-template-columns:1fr;}}
-.mi-section{margin-bottom:16px;}
-.mi-section-title{
-  font-size:11px;font-weight:700;color:var(--tx);text-transform:uppercase;letter-spacing:.5px;
-  margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--bdr);
-  display:flex;align-items:center;gap:6px;
-}
-.field-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end;}
-.field{display:flex;flex-direction:column;gap:4px;min-width:100px;}
-.field.flex1{flex:1;}
-.field label{font-size:10px;color:var(--tx2);font-weight:500;text-transform:uppercase;letter-spacing:.4px;}
-.inp{
-  background:var(--surface);border:1px solid var(--bdr);color:var(--tx);
-  padding:7px 10px;border-radius:var(--r);font-size:13px;width:100%;height:34px;
-}
-.inp:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-light);}
-.inp-mono{font-family:var(--mono);}
-.inp-num{text-align:right;font-family:var(--mono);}
-select.inp{cursor:pointer;}
-.inp-group{display:flex;border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;}
-.inp-group .inp{border:none;border-radius:0;}
-.inp-group .inp-addon{
-  background:var(--surface2);border-left:1px solid var(--bdr);padding:0 10px;
-  font-size:11px;color:var(--tx2);display:flex;align-items:center;white-space:nowrap;
-}
-.waste-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.waste-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--bdr);}
-.waste-label{font-size:11px;color:var(--tx2);flex:1;min-width:0;}
-.waste-inp{width:72px;text-align:right;font-family:var(--mono);font-size:12px;
-  border:1px solid var(--bdr);background:var(--surface);border-radius:4px;padding:3px 6px;height:28px;}
-.waste-inp:focus{outline:none;border-color:var(--acc);}
+/* ── MODAL ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center;padding:20px;}
+.ov.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--bdr);border-radius:14px;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;box-shadow:var(--sh2);}
+.mh{padding:13px 17px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);font-size:14px;font-weight:600;}
+.mb{padding:17px;}
+.mc{background:none;border:none;color:var(--tx2);font-size:18px;line-height:1;}
+.mc:hover{color:var(--red);}
+.m-acts{display:flex;gap:7px;margin-top:14px;padding-top:12px;border-top:1px solid var(--bdr);}
 
-.mi-actions{display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--bdr);margin-top:4px;flex-wrap:wrap;}
-
-/* ── Saved local sessions list ── */
-.session-list{display:flex;flex-direction:column;gap:6px;}
-.session-item{
-  display:flex;align-items:center;gap:10px;padding:9px 12px;
-  background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r);
-  transition:border-color .12s;
-}
-.session-item:hover{border-color:var(--acc-mid);}
-.session-info{flex:1;min-width:0;}
-.session-title{font-size:12px;font-weight:600;color:var(--tx);}
-.session-meta{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-top:2px;}
-.session-kpi{display:flex;gap:12px;margin-top:4px;}
-.session-kpi-item{font-size:10px;color:var(--tx2);}
-.session-kpi-item b{font-family:var(--mono);}
-.session-actions{display:flex;gap:4px;flex-shrink:0;}
-
-/* ══════════════════════════════════════
-   MODAL
-══════════════════════════════════════ */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;
-  align-items:center;justify-content:center;padding:20px;}
-.overlay.show{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--bdr);border-radius:14px;
-  width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:var(--sh2);}
-.modal-hdr{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--bdr);font-size:15px;font-weight:600;}
-.modal-body{padding:18px;}
-.modal-close{background:none;border:none;color:var(--tx2);font-size:18px;cursor:pointer;line-height:1;}
-.modal-close:hover{color:var(--red);}
-.modal-actions{display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--bdr);}
-.f-group{margin-bottom:12px;}
-.f-group label{display:block;font-size:10px;color:var(--tx2);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
-.f-hint{font-size:10px;color:var(--tx3);margin-top:4px;line-height:1.5;}
-
-/* ══════════════════════════════════════
-   TOAST
-══════════════════════════════════════ */
-.toast{
-  position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--bdr);
-  border-radius:10px;padding:11px 16px;font-size:12px;font-weight:500;z-index:9999;
-  transform:translateY(16px);opacity:0;transition:all .25s;pointer-events:none;
-  box-shadow:var(--sh2);display:flex;align-items:center;gap:7px;max-width:300px;
-}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--surface);border:1px solid var(--bdr);border-radius:10px;padding:10px 15px;font-size:12px;font-weight:500;z-index:9999;transform:translateY(14px);opacity:0;transition:all .22s;pointer-events:none;box-shadow:var(--sh2);display:flex;align-items:center;gap:6px;max-width:280px;}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.ok{border-left:3px solid var(--grn);}
 .toast.err{border-left:3px solid var(--red);}
 .toast.warn{border-left:3px solid var(--warn);}
 
-/* ══════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════ */
+/* ── EMPTY ── */
+.empty{text-align:center;padding:52px 24px;}
+.e-icon{font-size:42px;margin-bottom:10px;}
+.e-title{font-size:15px;font-weight:600;color:var(--tx2);margin-bottom:6px;}
+.e-sub{font-size:12px;color:var(--tx3);line-height:1.7;}
+
+/* ── DATA SOURCE SELECTOR ── */
+.source-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+@media(max-width:700px){.source-cards{grid-template-columns:1fr;}}
+.source-card{border:2px solid var(--bdr);border-radius:var(--r2);padding:16px;cursor:pointer;transition:all .15s;text-align:center;}
+.source-card:hover{border-color:var(--acc-m);background:var(--acc-l);}
+.source-card.active{border-color:var(--acc);background:var(--acc-l);}
+.sc-icon{font-size:26px;margin-bottom:7px;}
+.sc-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;}
+.sc-sub{font-size:11px;color:var(--tx2);line-height:1.5;}
+
+/* ── MOBILE ── */
 @media(max-width:768px){
-  .sidebar{transform:translateX(-100%);transition:transform .25s;}
-  .sidebar.open{transform:translateX(0);}
+  :root{--sb:0px;}
+  .sidebar{transform:translateX(-220px);width:220px;transition:transform .2s;box-shadow:none;}
+  .sidebar.open{transform:translateX(0);box-shadow:var(--sh2);}
   .content{margin-left:0;}
-  .topbar{padding:0 12px;}
-  .topbar-center{display:none;}
-  .brand{width:auto;}
-  .kpi-strip{grid-template-columns:1fr 1fr;}
-  .grid-2,.grid-3,.grid-eq{grid-template-columns:1fr;}
-  .mi-grid{grid-template-columns:1fr;}
-  .waste-grid{grid-template-columns:1fr;}
+  .tb-center{display:none;}
+  .mob-menu{display:flex!important;}
+  .sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:190;}
+  .sb-ov.show{display:block;}
 }
-.mob-menu-btn{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx2);padding:4px;}
-@media(max-width:768px){.mob-menu-btn{display:flex;align-items:center;}}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99;}
-.sidebar-overlay.show{display:block;}
+.mob-menu{display:none;background:none;border:none;color:var(--tx2);font-size:18px;padding:4px;}
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar{width:5px;height:5px;}
-::-webkit-scrollbar-track{background:var(--surface2);}
-::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px;}
+/* ── PROGRESS BAR ── */
+.pbar-bg{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;flex:1;min-width:60px;}
+.pbar-fill{height:100%;border-radius:3px;transition:width .3s;}
 
-/* ── Divider ── */
-.divider{height:1px;background:var(--bdr);margin:8px 0;}
-
-/* ── Info banner ── */
-.banner{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:var(--r);margin-bottom:14px;font-size:12px;line-height:1.6;}
-.banner.info{background:var(--acc-light);border:1px solid var(--acc-mid);color:var(--acc);}
-.banner.warn{background:var(--warn-light);border:1px solid #fde68a;color:var(--warn);}
-.banner.ok{background:var(--grn-light);border:1px solid #bbf7d0;color:var(--grn);}
+/* ── GAS CODE BLOCK ── */
+.code-blk{background:#1e1e2e;color:#cdd6f4;border-radius:var(--r);padding:12px;font-family:var(--mono);font-size:10.5px;line-height:1.7;overflow-x:auto;white-space:pre;margin:8px 0;}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <button class="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div class="brand">
-    <div class="brand-logo">W<em style="color:#93c5fd;font-style:normal">H</em></div>
-    <div class="brand-text">
-      <div class="name">Waste<em>Hub</em></div>
-      <div class="sub">Analytics Dashboard</div>
+  <button class="mob-menu" id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div class="logo">
+    <div class="logo-box">W<span style="color:#93c5fd">H</span></div>
+    <div>
+      <div class="logo-name">Waste<em>Hub</em></div>
+      <div class="logo-sub">Analytics</div>
     </div>
   </div>
-  <div class="topbar-center">
-    <div class="period-pills">
-      <button class="pp on" data-period="daily" onclick="setPeriod('daily')">📅 Daily</button>
-      <button class="pp" data-period="weekly" onclick="setPeriod('weekly')">📆 Weekly</button>
-      <button class="pp" data-period="monthly" onclick="setPeriod('monthly')">🗓 Monthly</button>
+  <div class="tb-center">
+    <div class="period-group">
+      <button class="pg-btn on" data-p="daily"  onclick="setPeriod('daily')">📅 Daily</button>
+      <button class="pg-btn"    data-p="weekly" onclick="setPeriod('weekly')">📆 Weekly</button>
+      <button class="pg-btn"    data-p="monthly"onclick="setPeriod('monthly')">🗓 Monthly</button>
     </div>
-    <div class="date-range">
-      <input type="date" class="date-inp" id="inp-from"/>
+    <div class="dr">
+      <input type="date" class="di" id="inp-from"/>
       <span class="sep">→</span>
-      <input type="date" class="date-inp" id="inp-to"/>
-      <button class="btn btn-sm" onclick="fetchAndRender()">Tampilkan</button>
+      <input type="date" class="di" id="inp-to"/>
+      <button class="btn btn-sm" onclick="applyDateFilter()">Terapkan</button>
     </div>
   </div>
-  <div class="topbar-right">
-    <div class="live-chip"><span class="live-dot"></span><span class="live-lbl">LIVE</span></div>
+  <div class="tb-right">
+    <div class="live-pill"><span class="ld"></span><span class="live-lbl">LIVE</span></div>
     <span class="sync-lbl" id="sync-lbl">—</span>
-    <button class="btn btn-sm" id="btn-refresh" onclick="fetchAndRender()">⟳ Refresh</button>
-    <button class="btn btn-primary btn-sm" onclick="openConfig()">⚙ Config</button>
+    <button class="btn btn-sm" id="btn-ref" onclick="refreshData()">⟳ Refresh</button>
+    <button class="btn btn-p btn-sm" onclick="openModal('m-config')">⚙ Sumber Data</button>
   </div>
 </div>
 
 <!-- SIDEBAR OVERLAY (mobile) -->
-<div class="sidebar-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
+<div class="sb-ov" id="sb-ov" onclick="toggleSidebar()"></div>
 
-<!-- LAYOUT -->
-<div class="layout">
-  <!-- SIDEBAR -->
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-section">Dashboard</div>
-    <button class="nav-item on" data-view="overview" onclick="switchView('overview')">
-      <span class="nav-icon">📊</span> Overview
-    </button>
-    <button class="nav-item" data-view="waste" onclick="switchView('waste')">
-      <span class="nav-icon">📦</span> Waste Pouch
-    </button>
-    <button class="nav-item" data-view="gf" onclick="switchView('gf')">
-      <span class="nav-icon">⚠️</span> Gagal Filling
-    </button>
-    <button class="nav-item" data-view="kardus" onclick="switchView('kardus')">
-      <span class="nav-icon">📋</span> Kardus
-    </button>
-
-    <div class="divider" style="margin:8px 16px;"></div>
-    <div class="sidebar-section">Input</div>
-    <button class="nav-item" data-view="manual" onclick="switchView('manual')">
-      <span class="nav-icon">✏️</span> Input Manual
-      <span class="nav-badge" id="manual-badge" style="display:none">!</span>
-    </button>
-    <button class="nav-item" data-view="sessions" onclick="switchView('sessions')">
-      <span class="nav-icon">🗃️</span> Sesi Tersimpan
-    </button>
-
-    <div class="sidebar-footer">
-      <div class="cfg-info" id="cfg-info-sidebar">Belum dikonfigurasi</div>
-    </div>
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sb-sec">Dashboard</div>
+  <div class="nav">
+    <button class="ni on" data-v="overview" onclick="nav('overview')"><span class="ni-icon">📊</span>Overview</button>
+    <button class="ni" data-v="waste"    onclick="nav('waste')"><span class="ni-icon">📦</span>Waste Pouch</button>
+    <button class="ni" data-v="gf"       onclick="nav('gf')"><span class="ni-icon">⚠️</span>Gagal Filling</button>
+    <button class="ni" data-v="kardus"   onclick="nav('kardus')"><span class="ni-icon">📋</span>Kardus</button>
   </div>
+  <div class="sb-sec">Input &amp; Data</div>
+  <div class="nav">
+    <button class="ni" data-v="manual"   onclick="nav('manual')"><span class="ni-icon">✏️</span>Input Manual<span class="ni-badge" id="badge-manual" style="display:none">!</span></button>
+    <button class="ni" data-v="sessions" onclick="nav('sessions')"><span class="ni-icon">🗃️</span>Semua Sesi</button>
+  </div>
+  <div class="sb-footer" id="sb-footer">—</div>
+</div>
 
-  <!-- CONTENT -->
-  <div class="content" id="main-content">
-    <div class="empty-state">
-      <div class="empty-icon">📊</div>
-      <div class="empty-title">Selamat datang di WasteHub Analytics</div>
-      <div class="empty-sub">Klik <b>⚙ Config</b> untuk konfigurasi koneksi,<br>atau gunakan <b>✏️ Input Manual</b> untuk entry data dari kertas.</div>
-    </div>
+<!-- CONTENT -->
+<div class="content" id="content">
+  <div class="empty">
+    <div class="e-icon">📊</div>
+    <div class="e-title">WasteHub Analytics siap digunakan</div>
+    <div class="e-sub">Klik <b>⚙ Sumber Data</b> untuk memuat data dari Drive,<br>upload file JSON, atau gunakan <b>✏️ Input Manual</b>.</div>
   </div>
 </div>
 
-<!-- CONFIG MODAL -->
-<div class="overlay" id="modal-config">
-  <div class="modal">
-    <div class="modal-hdr">
-      <span>⚙ Konfigurasi Dashboard</span>
-      <button class="modal-close" onclick="closeModal('modal-config')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="cfg-conn-status" class="banner info">⚪ Belum dikonfigurasi</div>
-      <div class="f-group">
-        <label>URL Google Apps Script</label>
-        <input class="inp inp-mono" id="cfg-url" type="text" placeholder="https://script.google.com/macros/s/..."/>
-        <div class="f-hint">URL Web App endpoint WasteHub (sama dengan yang dipakai di WasteHub.html)</div>
+<!-- MODAL: SUMBER DATA -->
+<div class="ov" id="m-config">
+  <div class="modal" style="max-width:600px">
+    <div class="mh"><span>⚙ Sumber Data &amp; Konfigurasi</span><button class="mc" onclick="closeModal('m-config')">✕</button></div>
+    <div class="mb">
+      <div class="source-cards">
+        <div class="source-card" id="sc-drive" onclick="selectSource('drive')">
+          <div class="sc-icon">☁️</div>
+          <div class="sc-title">Google Drive</div>
+          <div class="sc-sub">Otomatis baca semua file JSON dari folder Drive via GAS</div>
+        </div>
+        <div class="source-card" id="sc-upload" onclick="selectSource('upload')">
+          <div class="sc-icon">📂</div>
+          <div class="sc-title">Upload File JSON</div>
+          <div class="sc-sub">Upload satu atau beberapa file .json yang disimpan WasteHub</div>
+        </div>
+        <div class="source-card" id="sc-manual" onclick="selectSource('manual-src')">
+          <div class="sc-icon">✏️</div>
+          <div class="sc-title">Input Manual</div>
+          <div class="sc-sub">Entry data dari kertas langsung ke dashboard</div>
+        </div>
       </div>
-      <div class="f-group">
-        <label>Folder ID Google Drive</label>
-        <input class="inp inp-mono" id="cfg-folder" type="text" placeholder="1CzNjJIymT9cOfwDEV7oHESt80kDOR9iN"/>
-        <div class="f-hint">ID folder tempat file JSON tersimpan. <b>Catatan:</b> GAS perlu diupdate agar support doGet (lihat petunjuk di dalam).</div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-primary" onclick="saveConfig()">✓ Simpan & Muat Data</button>
-        <button class="btn" onclick="loadDemoData();closeModal('modal-config')">📊 Data Demo</button>
-        <button class="btn" onclick="closeModal('modal-config')">Batal</button>
-      </div>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--bdr);">
-        <div style="font-size:10px;color:var(--tx2);font-weight:600;margin-bottom:6px;">📋 Update GAS — tambahkan fungsi doGet ini:</div>
-        <pre style="background:var(--surface2);border:1px solid var(--bdr);border-radius:6px;padding:10px;font-size:10px;font-family:var(--mono);overflow-x:auto;line-height:1.7;color:var(--tx);white-space:pre-wrap;">function doGet(e) {
-  try {
-    const action = e.parameter.action;
-    const folderId = e.parameter.folderId;
-    if (action === 'list') return listFiles(folderId);
-    if (action === 'read') return readFile(e.parameter.fileId);
-    return out({status:'error',msg:'unknown action'});
-  } catch(err) { return out({status:'error',msg:err.toString()}); }
-}
 
+      <!-- DRIVE SECTION -->
+      <div id="src-drive" style="display:none">
+        <div class="banner ban-warn">⚠ Memerlukan update GAS. Tambahkan kode di bawah ke Apps Script yang sama, lalu redeploy.</div>
+        <div class="fg">
+          <label class="fl">URL Google Apps Script</label>
+          <input class="fi fi-mono" id="cfg-url" placeholder="https://script.google.com/macros/s/..."/>
+        </div>
+        <div class="fg">
+          <label class="fl">Folder ID Google Drive</label>
+          <input class="fi fi-mono" id="cfg-folder" placeholder="1CzNjJIymT9cOfwDEV7oHESt80kDOR9iN"/>
+        </div>
+        <div style="margin-bottom:8px;font-size:10px;color:var(--tx2);font-weight:600">Tambahkan fungsi ini ke GAS (tanpa menghapus doPost yang lama):</div>
+        <div class="code-blk">function doGet(e) {
+  try {
+    const p = e.parameter;
+    if (p.action === 'list') return listFiles(p.folderId);
+    if (p.action === 'read') return readFile(p.fileId);
+    return out({status:'error', msg:'unknown action'});
+  } catch(err) { return out({status:'error', msg:err.toString()}); }
+}
 function listFiles(folderId) {
-  const folder = folderId
-    ? DriveApp.getFolderById(folderId)
-    : DriveApp.getRootFolder();
-  const iter = folder.getFiles();
-  const files = [];
+  const folder = folderId ? DriveApp.getFolderById(folderId) : DriveApp.getRootFolder();
+  const iter = folder.getFiles(), files = [];
   while (iter.hasNext()) {
     const f = iter.next();
     if (f.getName().endsWith('.json'))
-      files.push({id:f.getId(),name:f.getName(),
-        date:f.getDateCreated().toISOString()});
+      files.push({id:f.getId(), name:f.getName()});
   }
   return out({status:'ok', files});
 }
-
 function readFile(fileId) {
   const f = DriveApp.getFileById(fileId);
-  return ContentService
-    .createTextOutput(f.getBlob().getDataAsString())
+  return ContentService.createTextOutput(f.getBlob().getDataAsString())
     .setMimeType(ContentService.MimeType.JSON);
-}</pre>
+}</div>
+        <div class="m-acts">
+          <button class="btn btn-p" onclick="saveDriveConfig()">✓ Simpan &amp; Muat</button>
+          <button class="btn btn-sm" onclick="loadDemoData()">📊 Coba Data Demo</button>
+        </div>
       </div>
+
+      <!-- UPLOAD SECTION -->
+      <div id="src-upload" style="display:none">
+        <div class="banner ban-info">ℹ️ Upload file <b>.json</b> yang sudah disimpan dari tombol <b>→ Sheets</b> di WasteHub. Bisa upload banyak sekaligus.</div>
+        <div style="border:2px dashed var(--bdr2);border-radius:var(--r2);padding:24px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2);"
+             id="drop-zone"
+             ondragover="event.preventDefault();this.style.borderColor='var(--acc)'"
+             ondragleave="this.style.borderColor='var(--bdr2)'"
+             ondrop="handleDrop(event)">
+          <div style="font-size:32px;margin-bottom:6px">📂</div>
+          <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:4px">Drag &amp; drop file JSON di sini</div>
+          <div style="font-size:11px;color:var(--tx2);margin-bottom:10px">atau klik untuk pilih file</div>
+          <input type="file" id="file-input" accept=".json" multiple style="display:none" onchange="handleFileInput(this)"/>
+          <button class="btn btn-sm" onclick="document.getElementById('file-input').click()">Pilih File</button>
+        </div>
+        <div id="upload-status" style="margin-top:8px;font-size:11px;color:var(--tx2)"></div>
+        <div class="m-acts">
+          <button class="btn btn-p" id="btn-load-files" onclick="loadUploadedFiles()" disabled>✓ Muat Data</button>
+        </div>
+      </div>
+
+      <!-- MANUAL SRC -->
+      <div id="src-manual-src" style="display:none">
+        <div class="banner ban-info">Data yang diinput manual otomatis tersimpan di browser dan muncul di dashboard.</div>
+        <div class="m-acts">
+          <button class="btn btn-p" onclick="closeModal('m-config');nav('manual')">✏️ Buka Form Input Manual</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -485,1344 +392,943 @@ function readFile(fileId) {
 <div class="toast" id="toast"></div>
 
 <script>
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // CONSTANTS
-// ════════════════════════════════════════════════════════════
-const WASTE_TYPES = [
-  "Gagal Filling Kotor Dalam","Gagal Filling Sobek","Gagal Filling Tersealing",
+// ══════════════════════════════════════════════
+const WT = ["Gagal Filling Kotor Dalam","Gagal Filling Sobek","Gagal Filling Tersealing",
   "Pouch Bocor","Pouch Kembung","Tidak Ada Cooling","Berat Over/Under",
-  "Sealing NG","Seal Ngetrap","Bocor Pouch Sobek"
+  "Sealing NG","Seal Ngetrap","Bocor Pouch Sobek"];
+const GFV = ["77g","550g","1000g","270g","725g","77BB"];
+const KL = [
+  {id:"LC1",l:"LC1",v:"77YB",t:1},{id:"LC2",l:"LC2",v:"77YB",t:1},
+  {id:"LC3",l:"LC3",v:"77YB",t:1},{id:"LC3B",l:"LC3(77BB)",v:"77BB",t:1},
+  {id:"LC5",l:"LC5",v:"77BB",t:1},{id:"LD1",l:"LD1",v:"42g",t:1},
+  {id:"LD2",l:"LD2",v:"250g/280g",t:2},{id:"LD4",l:"LD4",v:"725g",t:3},
+  {id:"LD3",l:"LD3",v:"700g",t:3},{id:"LD5",l:"LD5",v:"20g",t:1},
+  {id:"LD6",l:"LD6",v:"12,5g",t:1},
 ];
-const GF_VARIANTS = ["77g","550g","1000g","270g","725g","77BB"];
-const KARDUS_LINES = [
-  {id:"LC1",label:"LC1",variant:"77YB",target:1},
-  {id:"LC2",label:"LC2",variant:"77YB",target:1},
-  {id:"LC3",label:"LC3",variant:"77YB",target:1},
-  {id:"LC3B",label:"LC3 (77BB)",variant:"77BB",target:1},
-  {id:"LC5",label:"LC5",variant:"77BB",target:1},
-  {id:"LD1",label:"LD1",variant:"42g",target:1},
-  {id:"LD2",label:"LD2",variant:"250g/280g",target:2},
-  {id:"LD4",label:"LD4",variant:"725g",target:3},
-  {id:"LD3",label:"LD3",variant:"700g",target:3},
-  {id:"LD5",label:"LD5",variant:"20g",target:1},
-  {id:"LD6",label:"LD6",variant:"12,5g",target:1},
-];
-const LINE_CONFIG = {
-  C1:{machines:["D3","D4","D5","D6"],variants:["77yb"]},
-  C2:{machines:["D1","D2","D7","D8"],variants:["77yb"]},
-  C3:{machines:["D9","D10","D12","D14"],variants:["77yb","77bb"]},
-  C5:{machines:["D11","D13","D16","D17"],variants:["77bb"]},
-  D2:{machines:["F1"],variants:["250","270"]},
-  D3:{machines:["F2"],variants:["550","700","725","1000"]},
-  D4:{machines:["F3"],variants:["550","700","725","1000"]},
+const LC = {
+  C1:{m:["D3","D4","D5","D6"],    v:["77yb"]},
+  C2:{m:["D1","D2","D7","D8"],    v:["77yb"]},
+  C3:{m:["D9","D10","D12","D14"], v:["77yb","77bb"]},
+  C5:{m:["D11","D13","D16","D17"],v:["77bb"]},
+  D2:{m:["F1"],                   v:["250","270"]},
+  D3:{m:["F2"],                   v:["550","700","725","1000"]},
+  D4:{m:["F3"],                   v:["550","700","725","1000"]},
 };
-const PCS_PER_BOX = {"77yb":48,"77bb":48,"250":24,"270":24,"550":12,"700":12,"725":12,"1000":12};
-const ALL_LINES = Object.keys(LINE_CONFIG);
+const PPB = {"77yb":48,"77bb":48,"250":24,"270":24,"550":12,"700":12,"725":12,"1000":12};
+const ALL_LINES = Object.keys(LC);
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // STATE
-// ════════════════════════════════════════════════════════════
-const CFG = {
+// ══════════════════════════════════════════════
+let CFG = {
   url: localStorage.getItem('wh_url') || '',
   folder: localStorage.getItem('wh_folder') || '1CzNjJIymT9cOfwDEV7oHESt80kDOR9iN',
 };
-
-let allRecords = [];
-let localSessions = JSON.parse(localStorage.getItem('wh_local_sessions') || '[]');
-let currentView = 'overview';
+let driveRecords  = [];                                                // from GAS
+let uploadedRecords = [];                                              // from uploaded JSON files
+let localSessions = JSON.parse(localStorage.getItem('wh_manual')||'[]'); // manual input
+let allRecords    = [];                                                // merged view
+let charts        = {};
+let currentView   = 'overview';
 let currentPeriod = 'daily';
-let chartInstances = {};
+let uploadedFiles = [];
 
-Chart.defaults.color = '#6b7280';
-Chart.defaults.borderColor = '#e2e5ea';
-Chart.defaults.font.family = "'Inter', sans-serif";
+// pending files for upload
+let pendingFiles = [];
 
-// ════════════════════════════════════════════════════════════
+Chart.defaults.color      = '#6b7280';
+Chart.defaults.borderColor= '#e2e6ea';
+Chart.defaults.font.family= "'Inter',sans-serif";
+
+// ══════════════════════════════════════════════
+// MERGE & HELPERS
+// ══════════════════════════════════════════════
+function mergeAll() {
+  allRecords = [...driveRecords, ...uploadedRecords, ...localSessions];
+  updateSidebarFooter();
+}
+const ni   = v => parseInt(v)||0;
+const nf   = v => parseFloat(v)||0;
+const ppb  = v => PPB[v]||1;
+const fmt  = d => d.toISOString().split('T')[0];
+
+function lineOutput(ls, line) {
+  const sh = ls?.[line]; if(!sh) return 0;
+  return Object.entries(sh.outputByVariant||{}).reduce((s,[v,b])=>s+ni(b)*ppb(v),0);
+}
+function totalWaste(w) { return WT.reduce((s,t)=>s+ni(w?.[t]),0); }
+
+function filterByDate(records) {
+  const f = document.getElementById('inp-from').value;
+  const t = document.getElementById('inp-to').value;
+  return records.filter(r => {
+    const d = r.header?.date||'';
+    return (!f||d>=f)&&(!t||d<=t);
+  });
+}
+function groupBy(recs, keyFn) {
+  const m = {};
+  recs.forEach(r=>{ const k=keyFn(r); if(!m[k])m[k]=[]; m[k].push(r); });
+  return m;
+}
+function weekKey(dateStr) {
+  const d = new Date(dateStr||Date.now());
+  const dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  dt.setUTCDate(dt.getUTCDate()+4-(dt.getUTCDay()||7));
+  const ys = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  return `${dt.getUTCFullYear()}-W${String(Math.ceil((((dt-ys)/864e5)+1)/7)).padStart(2,'0')}`;
+}
+function periodKey(r) {
+  const d = r.header?.date||'';
+  if(currentPeriod==='daily')   return d;
+  if(currentPeriod==='weekly')  return weekKey(d);
+  return d.substring(0,7);
+}
+function shortLabel(k) {
+  if(currentPeriod==='monthly'){
+    const mo=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+    const [y,m]=k.split('-'); return mo[parseInt(m)-1]+' '+y;
+  }
+  return currentPeriod==='daily'?k.substring(5):k;
+}
+
+function agg(recs) {
+  let out=0,waste=0,gfc=0,gfo=0,kard=0;
+  const wbt={};  WT.forEach(t=>{wbt[t]=0;});
+  recs.forEach(r=>{
+    Object.keys(r.lineShared||{}).forEach(l=>{ out+=lineOutput(r.lineShared,l); });
+    (r.entries||[]).forEach(e=>{ const w=totalWaste(e.waste||{}); waste+=w; WT.forEach(t=>{wbt[t]+=ni(e.waste?.[t]);}); });
+    GFV.forEach(v=>{ gfc+=ni(r.gf?.[v]?.close); gfo+=ni(r.gf?.[v]?.open); });
+    KL.forEach(k=>{ kard+=ni(r.kardus?.[k.id]?.total); });
+  });
+  const pct = out>0?(waste/out*100).toFixed(2):0;
+  return {out,waste,pct:+pct,gfc,gfo,kard,wbt,n:recs.length};
+}
+
+function dlt(c,p) {
+  if(!p) return {v:'—',cls:'neu'};
+  const d=((c-p)/p*100).toFixed(1);
+  return {v:(+d>0?'+':'')+d+'%',cls:+d>0?'up':+d<0?'dn':'neu'};
+}
+function pctCls(v) { return +v>5?'c-red':+v>2?'c-warn':'c-grn'; }
+function pBadge(v) {
+  const m = {c:'b-grn',w:'b-warn',r:'b-red'};
+  const c = +v>5?'r':+v>2?'w':'c';
+  return `<span class="badge ${m[c]}">${v}%</span>`;
+}
+function destroyChart(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+// ══════════════════════════════════════════════
 // NAVIGATION
-// ════════════════════════════════════════════════════════════
-function switchView(v) {
+// ══════════════════════════════════════════════
+function nav(v) {
   currentView = v;
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('on', el.dataset.view === v));
-  if (v === 'manual') renderManualInput();
-  else if (v === 'sessions') renderSessionsView();
-  else renderDashboard();
-  // Close sidebar on mobile
-  if (window.innerWidth <= 768) toggleSidebar(false);
+  document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.dataset.v===v));
+  if(v==='manual')   { renderManual(); return; }
+  if(v==='sessions') { renderSessions(); return; }
+  renderView();
+  if(window.innerWidth<=768) toggleSidebar(false);
 }
-
 function toggleSidebar(force) {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('sb-overlay');
-  const open = force !== undefined ? force : !sb.classList.contains('open');
-  sb.classList.toggle('open', open);
-  ov.classList.toggle('show', open);
+  const sb=document.getElementById('sidebar'),ov=document.getElementById('sb-ov');
+  const open=force!==undefined?force:!sb.classList.contains('open');
+  sb.classList.toggle('open',open); ov.classList.toggle('show',open);
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // PERIOD & DATE
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 function setPeriod(p) {
-  currentPeriod = p;
-  document.querySelectorAll('.pp').forEach(t => t.classList.toggle('on', t.dataset.period === p));
-  const today = new Date();
-  if (p === 'daily') {
-    document.getElementById('inp-from').value = fmtDate(today);
-    document.getElementById('inp-to').value = fmtDate(today);
-  } else if (p === 'weekly') {
-    const day = today.getDay() || 7;
-    const mon = new Date(today); mon.setDate(today.getDate() - day + 1);
-    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-    document.getElementById('inp-from').value = fmtDate(mon);
-    document.getElementById('inp-to').value = fmtDate(sun);
+  currentPeriod=p;
+  document.querySelectorAll('.pg-btn').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  const t=new Date();
+  if(p==='daily'){
+    document.getElementById('inp-from').value=fmt(t);
+    document.getElementById('inp-to').value=fmt(t);
+  } else if(p==='weekly'){
+    const day=t.getDay()||7;
+    const mon=new Date(t); mon.setDate(t.getDate()-day+1);
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    document.getElementById('inp-from').value=fmt(mon);
+    document.getElementById('inp-to').value=fmt(sun);
   } else {
-    document.getElementById('inp-from').value = fmtDate(new Date(today.getFullYear(), today.getMonth(), 1));
-    document.getElementById('inp-to').value = fmtDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    document.getElementById('inp-from').value=fmt(new Date(t.getFullYear(),t.getMonth(),1));
+    document.getElementById('inp-to').value=fmt(new Date(t.getFullYear(),t.getMonth()+1,0));
   }
-  if (['overview','waste','gf','kardus'].includes(currentView)) renderDashboard();
+  renderView();
 }
+function applyDateFilter(){ renderView(); }
 
-const fmtDate = d => d.toISOString().split('T')[0];
-
-
-// ════════════════════════════════════════════════════════════
-// FETCH & RENDER — Optimized (readAll) — COMPATIBLE dengan struktur data Anda
-// ════════════════════════════════════════════════════════════
-async function fetchAndRender() {
-  if (!CFG.url || !CFG.folder) { openConfig(); return; }
-  
-  const btn = document.getElementById('btn-refresh');
-  const originalBtnText = btn.textContent;
-  btn.textContent = '⟳'; btn.disabled = true;
-  showToast('🔄 Memuat data dari semua shift...', 'info');
-  
+// ══════════════════════════════════════════════
+// DATA LOADING — DRIVE
+// ══════════════════════════════════════════════
+async function refreshData() {
+  if(!CFG.url){ openModal('m-config'); selectSource('drive'); return; }
+  const btn=document.getElementById('btn-ref');
+  btn.textContent='⟳'; btn.disabled=true;
   try {
-    // ✅ Single request: baca SEMUA file JSON dalam folder
-    const url = `${CFG.url}?action=readAll&folderId=${CFG.folder}&t=${Date.now()}`;
-    const res = await fetch(url);
+    const listUrl=`${CFG.url}?action=list&folderId=${encodeURIComponent(CFG.folder)}&t=${Date.now()}`;
+    const res=await fetch(listUrl);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json=await res.json();
+    if(json.status==='error') throw new Error(json.msg||'GAS error');
+    if(!json.files) throw new Error('Response tidak ada daftar file. Pastikan doGet sudah ditambahkan ke GAS.');
     
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    
-    const result = await res.json();
-    
-    // ✅ Validasi response API
-    if (result.status !== "ok") {
-      throw new Error(result.msg || "Response status tidak ok");
+    const records=[];
+    let loaded=0;
+    for(const f of json.files.slice(0,300)){
+      try{
+        const r2=await fetch(`${CFG.url}?action=read&fileId=${encodeURIComponent(f.id)}&t=${Date.now()}`);
+        if(!r2.ok) continue;
+        const data=await r2.json();
+        if(data?.header) { records.push(data); loaded++; }
+      } catch {}
     }
-    
-    // ✅ Gabungkan data dari semua file shift
-    // Format result.data: [{shift, fileName, data: [ {...}, {...} ]}, ...]
-    const records = [];
-    
-    for (const shiftFile of result.data) {
-      // Normalisasi: shiftFile.data bisa array atau object
-      const items = Array.isArray(shiftFile.data) ? shiftFile.data : [shiftFile.data];
-      
-      for (const item of items) {
-        // ✅ PENTING: Pastikan item punya struktur yang dashboard harapkan
-        // Jika file JSON dari WasteHub sudah punya header/entries/gf/kardus, langsung push
-        if (item && typeof item === 'object') {
-          records.push({
-            ...item,
-            // Tambahkan metadata shift untuk filter opsional
-            _meta: {
-              shift: shiftFile.shift,
-              fileName: shiftFile.fileName,
-              modified: shiftFile.modified,
-              source: 'drive'
-            }
-          });
-        }
-      }
-    }
-    
-    // ✅ Update state global & UI
-    allRecords = records;
-    document.getElementById('sync-lbl').textContent = new Date().toLocaleTimeString('id-ID');
-    
-    const msg = records.length > 0 
-      ? `✓ ${records.length} record dari ${result.count} file shift`
-      : `⚠ Tidak ada data valid ditemukan`;
-      
-    showToast(msg, records.length > 0 ? 'ok' : 'warn');
-    
-    // ✅ Render dashboard (fungsi Anda yang sudah ada)
-    renderDashboard();
-    
-  } catch (err) {
-    console.error("❌ Fetch error:", err);
-    showToast('⚠ Gagal: ' + err.message, 'err');
-  } finally {
-    btn.textContent = originalBtnText; 
-    btn.disabled = false;
+    driveRecords=records;
+    mergeAll();
+    document.getElementById('sync-lbl').textContent=new Date().toLocaleTimeString('id-ID');
+    showToast(`✓ ${loaded} sesi dimuat dari Drive`,'ok');
+    renderView();
+  } catch(err){
+    showToast('✗ '+err.message,'err');
   }
+  btn.textContent='⟳ Refresh'; btn.disabled=false;
 }
 
-// ════════════════════════════════════════════════════════════
+function saveDriveConfig(){
+  const url=document.getElementById('cfg-url').value.trim();
+  const folder=document.getElementById('cfg-folder').value.trim();
+  if(!url){ showToast('URL tidak boleh kosong','err'); return; }
+  CFG.url=url; CFG.folder=folder;
+  localStorage.setItem('wh_url',url);
+  if(folder) localStorage.setItem('wh_folder',folder);
+  updateSidebarFooter();
+  closeModal('m-config');
+  showToast('✓ Konfigurasi disimpan','ok');
+  refreshData();
+}
+
+// ══════════════════════════════════════════════
+// DATA LOADING — FILE UPLOAD
+// ══════════════════════════════════════════════
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor='var(--bdr2)';
+  const files=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.json'));
+  addPendingFiles(files);
+}
+function handleFileInput(el){
+  const files=[...el.files].filter(f=>f.name.endsWith('.json'));
+  addPendingFiles(files);
+}
+function addPendingFiles(files){
+  pendingFiles=[...pendingFiles,...files];
+  document.getElementById('upload-status').textContent=`${pendingFiles.length} file siap dimuat: ${pendingFiles.map(f=>f.name).join(', ')}`;
+  document.getElementById('btn-load-files').disabled=false;
+}
+async function loadUploadedFiles(){
+  const records=[];
+  for(const f of pendingFiles){
+    try{
+      const text=await f.text();
+      const data=JSON.parse(text);
+      // Support both single record and array
+      if(Array.isArray(data)) data.forEach(d=>{ if(d?.header) records.push(d); });
+      else if(data?.header) records.push(data);
+    } catch(e){ showToast('⚠ File '+f.name+' tidak valid','warn'); }
+  }
+  if(!records.length){ showToast('Tidak ada data valid dalam file','err'); return; }
+  uploadedRecords=records;
+  mergeAll();
+  pendingFiles=[];
+  document.getElementById('upload-status').textContent='';
+  document.getElementById('btn-load-files').disabled=true;
+  document.getElementById('file-input').value='';
+  document.getElementById('sync-lbl').textContent=records.length+' file';
+  closeModal('m-config');
+  showToast(`✓ ${records.length} sesi dari file JSON`,'ok');
+  renderView();
+}
+
+// ══════════════════════════════════════════════
 // DEMO DATA
-// ════════════════════════════════════════════════════════════
-function loadDemoData() {
-  const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
-  const records = [];
-  const today = new Date();
-  for (let d = 29; d >= 0; d--) {
-    const dt = new Date(today); dt.setDate(today.getDate() - d);
-    const dateStr = fmtDate(dt);
-    ['A','B','C'].forEach(grp => {
-      ['1','2','3'].forEach(shift => {
-        const lines = ['C1','C2','C3'];
-        const lineShared = {};
-        lines.forEach(l => {
-          lineShared[l] = {variant:'77yb',outputByVariant:{'77yb':rnd(80,220)},
-            sampelQC:rnd(5,20),slQC:rnd(0,3),hasilHeater:rnd(60,100),wasteFilling:rnd(0,50)};
-        });
-        const entries = [];
-        lines.forEach(line => {
-          LINE_CONFIG[line].machines.forEach(machine => {
-            const waste = {};
-            WASTE_TYPES.forEach(t => { waste[t] = rnd(0,25); });
-            entries.push({id:`${line}-${machine}`,line,machine,waste});
-          });
-        });
-        const gf = {};
-        GF_VARIANTS.forEach(v => { gf[v] = {close:rnd(0,70),open:rnd(0,35)}; });
-        const kardus = {};
-        KARDUS_LINES.forEach(kl => {
-          const causes = {};
-          ['Robek di CS','Robek di Modular','Robek pada saat Packing','Sealing Double','Lainnya'].forEach(c => { causes[c] = rnd(0,2); });
-          kardus[kl.id] = {total:rnd(0,kl.target+1),causes};
-        });
-        records.push({savedAt:dt.toISOString(),header:{group:grp,date:dateStr,shift},lineShared,entries,gf,kardus});
+// ══════════════════════════════════════════════
+function loadDemoData(){
+  const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const records=[], today=new Date();
+  for(let d=29;d>=0;d--){
+    const dt=new Date(today); dt.setDate(today.getDate()-d);
+    const ds=fmt(dt);
+    ['A','B','C'].forEach(grp=>{
+      ['1','2','3'].forEach(shift=>{
+        const lines=['C1','C2','C3'];
+        const ls={};
+        lines.forEach(l=>{ls[l]={variant:'77yb',outputByVariant:{'77yb':rnd(80,200)},sampelQC:rnd(5,20),slQC:rnd(0,3),hasilHeater:rnd(60,100),wasteFilling:rnd(0,50)};});
+        const entries=[];
+        lines.forEach(line=>LC[line].m.forEach(machine=>{ const w={}; WT.forEach(t=>{w[t]=rnd(0,20);}); entries.push({id:`${line}-${machine}`,line,machine,waste:w}); }));
+        const gf={};
+        GFV.forEach(v=>{gf[v]={close:rnd(0,60),open:rnd(0,30)};});
+        const kardus={};
+        KL.forEach(k=>{kardus[k.id]={total:rnd(0,k.t+1),causes:{}};});
+        records.push({savedAt:dt.toISOString(),header:{group:grp,date:ds,shift},lineShared:ls,entries,gf,kardus});
       });
     });
   }
-  allRecords = records;
-  document.getElementById('sync-lbl').textContent = 'Demo 30hr';
-  showToast('✓ Data demo dimuat', 'ok');
-  renderDashboard();
+  driveRecords=records;
+  mergeAll();
+  document.getElementById('sync-lbl').textContent='Demo';
+  closeModal('m-config');
+  showToast(`✓ ${records.length} data demo dimuat`,'ok');
+  renderView();
 }
 
-// ════════════════════════════════════════════════════════════
-// HELPERS
-// ════════════════════════════════════════════════════════════
-const n = v => parseInt(v) || 0;
-const pcsBox = v => PCS_PER_BOX[v] || 1;
-
-function calcLineOutput(lineShared, line) {
-  const sh = lineShared?.[line]; if(!sh) return 0;
-  return Object.entries(sh.outputByVariant||{}).reduce((s,[v,b]) => s+n(b)*pcsBox(v), 0);
-}
-function calcTotalWaste(waste) {
-  return WASTE_TYPES.reduce((s,t) => s+n(waste?.[t]), 0);
-}
-
-function filterRecords(records) {
-  const from = document.getElementById('inp-from').value;
-  const to = document.getElementById('inp-to').value;
-  // Include local sessions too
-  const all = [...records, ...localSessions];
-  return all.filter(r => {
-    const d = r.header?.date || '';
-    return (!from || d >= from) && (!to || d <= to);
-  });
-}
-
-function groupByKey(records, keyFn) {
-  const map = {};
-  records.forEach(r => {
-    const k = keyFn(r);
-    if (!map[k]) map[k] = [];
-    map[k].push(r);
-  });
-  return map;
-}
-
-function getWeek(d) {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
-  const ys = new Date(Date.UTC(date.getUTCFullYear(),0,1));
-  return `${date.getUTCFullYear()}-W${String(Math.ceil((((date-ys)/86400000)+1)/7)).padStart(2,'0')}`;
-}
-
-function aggregateRecords(recs) {
-  let totalOutput=0, totalWaste=0, gfClose=0, gfOpen=0, kardusTotal=0;
-  const wasteByType={};
-  WASTE_TYPES.forEach(t => { wasteByType[t]=0; });
-  recs.forEach(r => {
-    Object.keys(r.lineShared||{}).forEach(l => { totalOutput += calcLineOutput(r.lineShared, l); });
-    (r.entries||[]).forEach(e => {
-      const tw = calcTotalWaste(e.waste||{});
-      totalWaste += tw;
-      WASTE_TYPES.forEach(t => { wasteByType[t] += n(e.waste?.[t]); });
-    });
-    GF_VARIANTS.forEach(v => { gfClose += n(r.gf?.[v]?.close); gfOpen += n(r.gf?.[v]?.open); });
-    KARDUS_LINES.forEach(kl => { kardusTotal += n(r.kardus?.[kl.id]?.total); });
-  });
-  const wastePct = totalOutput > 0 ? (totalWaste/totalOutput*100).toFixed(2) : 0;
-  return {totalOutput,totalWaste,wastePct:+wastePct,gfClose,gfOpen,kardusTotal,wasteByType,count:recs.length};
-}
-
-function destroyChart(id) {
-  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
-}
-
-function pctClass(v) {
-  const f = parseFloat(v);
-  return f > 5 ? 'red' : f > 2 ? 'warn' : 'green';
-}
-
-function pctBadge(v) {
-  const cls = pctClass(v);
-  const colors = {red:'badge-red',warn:'badge-warn',green:'badge-green'};
-  return `<span class="badge ${colors[cls]}">${v}%</span>`;
-}
-
-function delta(curr, prev) {
-  if (!prev) return {v:'—',cls:'neutral'};
-  const d = ((curr-prev)/prev*100).toFixed(1);
-  return {v:(d>0?'+':'')+d+'%', cls: +d>0?'up':+d<0?'down':'neutral'};
-}
-
-// ════════════════════════════════════════════════════════════
-// RENDER DASHBOARD ROUTER
-// ════════════════════════════════════════════════════════════
-function renderDashboard() {
-  const filtered = filterRecords(allRecords);
-  if (!filtered.length && !allRecords.length && !localSessions.length) {
-    document.getElementById('main-content').innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📊</div>
-        <div class="empty-title">Belum ada data</div>
-        <div class="empty-sub">Klik <b>⚙ Config</b> untuk menghubungkan ke Google Drive,<br>gunakan <b>📊 Data Demo</b> untuk preview, atau <b>✏️ Input Manual</b>.</div>
+// ══════════════════════════════════════════════
+// RENDER ROUTER
+// ══════════════════════════════════════════════
+function renderView(){
+  if(!['overview','waste','gf','kardus'].includes(currentView)) return;
+  const filtered=filterByDate(allRecords);
+  if(!filtered.length){
+    document.getElementById('content').innerHTML=`
+      <div class="empty">
+        <div class="e-icon">🔍</div>
+        <div class="e-title">Tidak ada data pada rentang ini</div>
+        <div class="e-sub">Ubah rentang tanggal, atau muat data via <b>⚙ Sumber Data</b>.<br>Total tersedia: ${allRecords.length} sesi.</div>
       </div>`;
     return;
   }
-
-  if (currentView === 'overview') renderOverview(filtered);
-  else if (currentView === 'waste') renderWasteView(filtered);
-  else if (currentView === 'gf') renderGFView(filtered);
-  else if (currentView === 'kardus') renderKardusView(filtered);
+  if(currentView==='overview') renderOverview(filtered);
+  if(currentView==='waste')    renderWaste(filtered);
+  if(currentView==='gf')       renderGF(filtered);
+  if(currentView==='kardus')   renderKardus(filtered);
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // OVERVIEW
-// ════════════════════════════════════════════════════════════
-function renderOverview(records) {
-  const agg = aggregateRecords(records);
-  const from = document.getElementById('inp-from').value;
-  const to = document.getElementById('inp-to').value;
+// ══════════════════════════════════════════════
+function renderOverview(recs){
+  const a=agg(recs);
+  const byP=groupBy(recs,periodKey);
+  const keys=Object.keys(byP).sort();
+  const labs=keys.map(shortLabel);
 
-  // Group by period
-  let byPeriod, periodKeyFn;
-  if (currentPeriod === 'daily') {
-    periodKeyFn = r => r.header?.date || '';
-  } else if (currentPeriod === 'weekly') {
-    periodKeyFn = r => getWeek(new Date(r.header?.date || r.savedAt));
-  } else {
-    periodKeyFn = r => (r.header?.date||'').substring(0,7);
-  }
-  byPeriod = groupByKey(records, periodKeyFn);
-  const sortedKeys = Object.keys(byPeriod).sort();
-  const labels = sortedKeys.map(k => currentPeriod === 'monthly'
-    ? (['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][parseInt(k.split('-')[1])-1]+' '+k.split('-')[0])
-    : k.substring(currentPeriod==='daily'?5:0));
-  const outputData = sortedKeys.map(k => aggregateRecords(byPeriod[k]).totalOutput);
-  const wasteData = sortedKeys.map(k => aggregateRecords(byPeriod[k]).totalWaste);
-  const pctData = sortedKeys.map(k => aggregateRecords(byPeriod[k]).wastePct);
-  const gfData = sortedKeys.map(k => { const a = aggregateRecords(byPeriod[k]); return a.gfClose+a.gfOpen; });
+  const half=Math.floor(keys.length/2);
+  const prev=agg(keys.slice(0,half).flatMap(k=>byP[k]||[]));
+  const curr=agg(keys.slice(half).flatMap(k=>byP[k]||[]));
 
-  // Half for delta
-  const mid = Math.floor(sortedKeys.length/2);
-  const prevAgg = aggregateRecords(sortedKeys.slice(0,mid).flatMap(k=>byPeriod[k]||[]));
-  const currAgg = aggregateRecords(sortedKeys.slice(mid).flatMap(k=>byPeriod[k]||[]));
-
-  // Shift breakdown
-  const shiftMap = {'1':{output:0,waste:0},'2':{output:0,waste:0},'3':{output:0,waste:0}};
-  records.forEach(r => {
-    const s = r.header?.shift||'1';
-    if (!shiftMap[s]) shiftMap[s]={output:0,waste:0};
-    Object.keys(r.lineShared||{}).forEach(l => { shiftMap[s].output += calcLineOutput(r.lineShared,l); });
-    (r.entries||[]).forEach(e => { shiftMap[s].waste += calcTotalWaste(e.waste||{}); });
-  });
+  const outD=keys.map(k=>agg(byP[k]).out);
+  const wasD=keys.map(k=>agg(byP[k]).waste);
+  const pctD=keys.map(k=>agg(byP[k]).pct);
 
   // Line breakdown
-  const lineMap = {};
-  records.forEach(r => {
-    (r.entries||[]).forEach(e => {
-      if(!lineMap[e.line]) lineMap[e.line]={output:0,waste:0};
-      lineMap[e.line].waste += calcTotalWaste(e.waste||{});
-    });
-    Object.keys(r.lineShared||{}).forEach(l => {
-      if(!lineMap[l]) lineMap[l]={output:0,waste:0};
-      lineMap[l].output += calcLineOutput(r.lineShared,l);
-    });
+  const lm={};
+  recs.forEach(r=>{
+    Object.keys(r.lineShared||{}).forEach(l=>{if(!lm[l])lm[l]={out:0,w:0}; lm[l].out+=lineOutput(r.lineShared,l);});
+    (r.entries||[]).forEach(e=>{if(!lm[e.line])lm[e.line]={out:0,w:0}; lm[e.line].w+=totalWaste(e.waste||{});});
   });
 
-  const dOut = delta(currAgg.totalOutput, prevAgg.totalOutput);
-  const dWaste = delta(currAgg.totalWaste, prevAgg.totalWaste);
-  const dPct = delta(currAgg.wastePct, prevAgg.wastePct);
-  const dGF = delta(currAgg.gfClose+currAgg.gfOpen, prevAgg.gfClose+prevAgg.gfOpen);
+  // Shift
+  const sm={'1':{w:0},'2':{w:0},'3':{w:0}};
+  recs.forEach(r=>{const s=r.header?.shift||'1'; if(!sm[s])sm[s]={w:0}; (r.entries||[]).forEach(e=>{sm[s].w+=totalWaste(e.waste||{});});});
 
-  const localCount = localSessions.filter(r => (!from||r.header?.date>=from)&&(!to||r.header?.date<=to)).length;
+  const localCount=localSessions.filter(r=>{const d=r.header?.date||'',f=document.getElementById('inp-from').value,t=document.getElementById('inp-to').value;return(!f||d>=f)&&(!t||d<=t);}).length;
 
-  document.getElementById('main-content').innerHTML = `
-    <div class="page-hdr">
-      <div>
-        <div class="page-title">Overview — ${currentPeriod==='daily'?'Daily':currentPeriod==='weekly'?'Weekly':'Monthly'}</div>
-        <div class="page-sub">${from||'—'} → ${to||'—'} · ${records.length} sesi${localCount?' ('+localCount+' manual)':''}</div>
+  document.getElementById('content').innerHTML=`
+    <div class="ph">
+      <div class="ph-left">
+        <div class="title">Overview — ${currentPeriod==='daily'?'Daily':currentPeriod==='weekly'?'Weekly':'Monthly'}</div>
+        <div class="sub">${document.getElementById('inp-from').value} → ${document.getElementById('inp-to').value} · ${recs.length} sesi${localCount?` (${localCount} manual)`:''}</div>
       </div>
-      <div class="page-actions">
-        <button class="btn btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      <div class="ph-right">
+        <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
       </div>
     </div>
+    ${localCount?`<div class="banner ban-warn">⚠ ${localCount} sesi input manual ikut dihitung.</div>`:''}
 
-    ${localCount ? `<div class="banner warn">⚠ ${localCount} sesi dari input manual diikutsertakan dalam kalkulasi ini.</div>` : ''}
-
-    <div class="kpi-strip">
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--acc)"></div>
-        <div class="kpi-label">Total Output</div>
-        <div class="kpi-value blue">${agg.totalOutput.toLocaleString()}</div>
-        <div class="kpi-delta ${dOut.cls}">↕ ${dOut.v}</div>
-        <div class="kpi-sub">pcs</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--red)"></div>
-        <div class="kpi-label">Total Waste Pouch</div>
-        <div class="kpi-value red">${agg.totalWaste.toLocaleString()}</div>
-        <div class="kpi-delta ${dWaste.cls}">↕ ${dWaste.v}</div>
-        <div class="kpi-sub">pcs</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:${agg.wastePct>5?'var(--red)':agg.wastePct>2?'var(--warn)':'var(--grn)'}"></div>
-        <div class="kpi-label">% Waste</div>
-        <div class="kpi-value ${pctClass(agg.wastePct)}">${agg.wastePct}%</div>
-        <div class="kpi-delta ${dPct.cls}">↕ ${dPct.v}</div>
-        <div class="kpi-sub">target ≤ 2%</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--warn)"></div>
-        <div class="kpi-label">Gagal Filling</div>
-        <div class="kpi-value warn">${(agg.gfClose+agg.gfOpen).toLocaleString()}</div>
-        <div class="kpi-delta ${dGF.cls}">↕ ${dGF.v}</div>
-        <div class="kpi-sub">Close ${agg.gfClose.toLocaleString()} · Open ${agg.gfOpen.toLocaleString()}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--purple)"></div>
-        <div class="kpi-label">Waste Kardus</div>
-        <div class="kpi-value">${agg.kardusTotal.toLocaleString()}</div>
-        <div class="kpi-sub">pcs</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--grn)"></div>
-        <div class="kpi-label">Sesi Tercatat</div>
-        <div class="kpi-value green">${records.length}</div>
-        <div class="kpi-sub">${sortedKeys.length} periode</div>
-      </div>
+    <div class="kpi-row c6">
+      ${kpiCard('Total Output','c-blue','var(--acc)',a.out.toLocaleString(),'pcs',dlt(curr.out,prev.out))}
+      ${kpiCard('Waste Pouch','c-red','var(--red)',a.waste.toLocaleString(),'pcs',dlt(curr.waste,prev.waste))}
+      ${kpiCard('% Waste',pctCls(a.pct),'var(--warn)',a.pct+'%','target ≤ 2%',dlt(curr.pct,prev.pct))}
+      ${kpiCard('GF Close','c-grn','var(--grn)',a.gfc.toLocaleString(),'pcs',{v:'Open: '+a.gfo.toLocaleString(),cls:'neu'})}
+      ${kpiCard('Waste Kardus','','var(--pur)',a.kard.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
+      ${kpiCard('Sesi','c-blue','var(--acc-m)',a.n,'periode: '+keys.length,{v:'—',cls:'neu'})}
     </div>
 
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-hdr">
-          <div class="card-title"><span class="icon">📈</span> Trend Output & Waste</div>
-          <div class="card-meta">${labels.length} titik data</div>
-        </div>
-        <div class="card-body tall"><canvas id="ch-trend"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr">
-          <div class="card-title"><span class="icon">📉</span> % Waste Trend</div>
-          <div class="card-meta">Target ≤ 2%</div>
-        </div>
-        <div class="card-body tall"><canvas id="ch-pct"></canvas></div>
-      </div>
+    <div class="g2">
+      <div class="card"><div class="card-h"><div class="card-title">📈 Output &amp; Waste Trend</div><div class="card-meta">${labs.length} titik</div></div><div class="card-b tall"><canvas id="ch-trend"></canvas></div></div>
+      <div class="card"><div class="card-h"><div class="card-title">📉 % Waste Trend</div><div class="card-meta">Target ≤ 2%</div></div><div class="card-b tall"><canvas id="ch-pct"></canvas></div></div>
     </div>
-
-    <div class="grid-3">
-      <div class="card">
-        <div class="card-hdr"><div class="card-title"><span class="icon">🔄</span> Waste per Shift</div></div>
-        <div class="card-body"><canvas id="ch-shift"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><div class="card-title"><span class="icon">⚠️</span> GF Trend</div></div>
-        <div class="card-body"><canvas id="ch-gf"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><div class="card-title"><span class="icon">🏭</span> Output per Line</div></div>
-        <div class="card-body"><canvas id="ch-line"></canvas></div>
-      </div>
+    <div class="g3">
+      <div class="card"><div class="card-h"><div class="card-title">🔄 Distribusi per Shift</div></div><div class="card-b"><canvas id="ch-shift"></canvas></div></div>
+      <div class="card"><div class="card-h"><div class="card-title">🏭 Waste per Line</div></div><div class="card-b"><canvas id="ch-line"></canvas></div></div>
+      <div class="card"><div class="card-h"><div class="card-title">⚠️ GF Total Trend</div></div><div class="card-b"><canvas id="ch-gft"></canvas></div></div>
     </div>
-
-    ${renderLineTable(lineMap)}
-    ${renderShiftTable(records)}
+    ${tblLine(lm)}
+    ${tblShift(recs)}
   `;
 
-  buildTrendChart('ch-trend', labels, outputData, wasteData);
-  buildPctChart('ch-pct', labels, pctData);
-  buildShiftChart('ch-shift', shiftMap);
-  buildLineChart('ch-gf', labels, gfData, '#d97706', 'Gagal Filling');
-  buildLineBarChart('ch-line', lineMap);
+  buildTrend('ch-trend',labs,outD,wasD);
+  buildPct('ch-pct',labs,pctD);
+  buildDonut('ch-shift',['Shift 1','Shift 2','Shift 3'],[sm['1']?.w||0,sm['2']?.w||0,sm['3']?.w||0]);
+  buildBar('ch-line',Object.keys(lm),Object.values(lm).map(d=>d.w));
+  buildLine('ch-gft',labs,keys.map(k=>{const a=agg(byP[k]);return a.gfc+a.gfo;}),'#d97706','GF Total');
 }
 
-// ════════════════════════════════════════════════════════════
+function kpiCard(label,valCls,barColor,val,sub,d){
+  return `<div class="kc">
+    <div class="kc-bar" style="background:${barColor}"></div>
+    <div class="kc-label">${label}</div>
+    <div class="kc-val ${valCls}">${val}</div>
+    <div class="kc-delta ${d.cls}">${d.v!=='—'?'↕ ':''} ${d.v}</div>
+    <div class="kc-sub">${sub}</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
 // WASTE VIEW
-// ════════════════════════════════════════════════════════════
-function renderWasteView(records) {
-  const agg = aggregateRecords(records);
-  const sorted = WASTE_TYPES.map((t,i) => ({t,v:agg.wasteByType[t]||0})).sort((a,b)=>b.v-a.v);
-  const topWaste = sorted[0]?.t || '—';
+// ══════════════════════════════════════════════
+function renderWaste(recs){
+  const a=agg(recs);
+  const sorted=WT.map(t=>({t,v:a.wbt[t]||0})).sort((x,y)=>y.v-x.v);
+  const mm={};
+  recs.forEach(r=>(r.entries||[]).forEach(e=>{
+    if(!mm[e.machine])mm[e.machine]={line:e.line,w:0,n:0};
+    mm[e.machine].w+=totalWaste(e.waste||{}); mm[e.machine].n++;
+  }));
 
-  // Per machine
-  const machineMap = {};
-  records.forEach(r => {
-    (r.entries||[]).forEach(e => {
-      const k = e.machine;
-      if(!machineMap[k]) machineMap[k]={line:e.line,waste:0,count:0};
-      machineMap[k].waste += calcTotalWaste(e.waste||{});
-      machineMap[k].count++;
-    });
-  });
-
-  document.getElementById('main-content').innerHTML = `
-    <div class="page-hdr">
-      <div>
-        <div class="page-title">Waste Pouch Analysis</div>
-        <div class="page-sub">${records.length} sesi · Top waste: ${topWaste}</div>
-      </div>
+  document.getElementById('content').innerHTML=`
+    <div class="ph"><div class="ph-left"><div class="title">Waste Pouch Analysis</div><div class="sub">${recs.length} sesi</div></div></div>
+    <div class="kpi-row c4">
+      ${kpiCard('Total Waste','c-red','var(--red)',a.waste.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
+      ${kpiCard('% Waste',pctCls(a.pct),'var(--warn)',a.pct+'%','dari '+a.out.toLocaleString()+' pcs',{v:'—',cls:'neu'})}
+      ${kpiCard('Jenis Terbanyak','','var(--pur)',sorted[0]?.t.substring(0,18)||'—',(sorted[0]?.v||0).toLocaleString()+' pcs',{v:'—',cls:'neu'})}
+      ${kpiCard('Mesin Tercatat','c-blue','var(--acc)',Object.keys(mm).length,'mesin',{v:'—',cls:'neu'})}
     </div>
-    <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--red)"></div>
-        <div class="kpi-label">Total Waste</div>
-        <div class="kpi-value red">${agg.totalWaste.toLocaleString()}</div>
-        <div class="kpi-sub">pcs</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--warn)"></div>
-        <div class="kpi-label">% Waste</div>
-        <div class="kpi-value ${pctClass(agg.wastePct)}">${agg.wastePct}%</div>
-        <div class="kpi-sub">dari ${agg.totalOutput.toLocaleString()} pcs output</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--purple)"></div>
-        <div class="kpi-label">Jenis Dominan</div>
-        <div class="kpi-value" style="font-size:13px">${topWaste.substring(0,20)}</div>
-        <div class="kpi-sub">${(sorted[0]?.v||0).toLocaleString()} pcs</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--acc)"></div>
-        <div class="kpi-label">Mesin Tercatat</div>
-        <div class="kpi-value blue">${Object.keys(machineMap).length}</div>
-      </div>
+    <div class="g2e">
+      <div class="card"><div class="card-h"><div class="card-title">📊 Breakdown Jenis Waste</div></div><div class="card-b tall"><canvas id="ch-wt"></canvas></div></div>
+      <div class="card"><div class="card-h"><div class="card-title">🥧 Proporsi</div></div><div class="card-b tall"><canvas id="ch-wp"></canvas></div></div>
     </div>
-    <div class="grid-eq">
-      <div class="card">
-        <div class="card-hdr"><div class="card-title"><span class="icon">📊</span> Breakdown Jenis Waste</div></div>
-        <div class="card-body tall"><canvas id="ch-wtype"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><div class="card-title"><span class="icon">🥧</span> Proporsi Jenis Waste</div></div>
-        <div class="card-body tall"><canvas id="ch-wpie"></canvas></div>
-      </div>
-    </div>
-    ${renderWasteTypeTable(sorted)}
-    ${renderMachineTable(machineMap)}
+    ${tblWasteType(sorted)}
+    ${tblMachine(mm)}
   `;
-
-  buildHBarChart('ch-wtype', sorted.map(s=>s.t.substring(0,25)), sorted.map(s=>s.v));
-  buildPieChart('ch-wpie', sorted.filter(s=>s.v>0).map(s=>s.t.substring(0,20)), sorted.filter(s=>s.v>0).map(s=>s.v));
+  buildHBar('ch-wt',sorted.map(s=>s.t.length>26?s.t.substring(0,26)+'…':s.t),sorted.map(s=>s.v));
+  buildPie('ch-wp',sorted.filter(s=>s.v>0).map(s=>s.t.substring(0,20)),sorted.filter(s=>s.v>0).map(s=>s.v));
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // GF VIEW
-// ════════════════════════════════════════════════════════════
-function renderGFView(records) {
-  const agg = aggregateRecords(records);
-  const gfByVariant = {};
-  GF_VARIANTS.forEach(v => {
-    gfByVariant[v] = {close:0,open:0};
-    records.forEach(r => {
-      gfByVariant[v].close += n(r.gf?.[v]?.close);
-      gfByVariant[v].open += n(r.gf?.[v]?.open);
-    });
-  });
+// ══════════════════════════════════════════════
+function renderGF(recs){
+  const a=agg(recs);
+  const gfv={};
+  GFV.forEach(v=>{gfv[v]={c:0,o:0}; recs.forEach(r=>{gfv[v].c+=ni(r.gf?.[v]?.close); gfv[v].o+=ni(r.gf?.[v]?.open);});});
 
-  let periodKeyFn;
-  if (currentPeriod === 'daily') periodKeyFn = r => r.header?.date || '';
-  else if (currentPeriod === 'weekly') periodKeyFn = r => getWeek(new Date(r.header?.date||r.savedAt));
-  else periodKeyFn = r => (r.header?.date||'').substring(0,7);
-  const byPeriod = groupByKey(records, periodKeyFn);
-  const sortedKeys = Object.keys(byPeriod).sort();
-  const labels = sortedKeys.map(k => k.substring(currentPeriod==='daily'?5:0));
-  const closeData = sortedKeys.map(k => byPeriod[k].reduce((s,r) => s+GF_VARIANTS.reduce((ss,v)=>ss+n(r.gf?.[v]?.close),0),0));
-  const openData = sortedKeys.map(k => byPeriod[k].reduce((s,r) => s+GF_VARIANTS.reduce((ss,v)=>ss+n(r.gf?.[v]?.open),0),0));
+  const byP=groupBy(recs,periodKey);
+  const keys=Object.keys(byP).sort();
+  const labs=keys.map(shortLabel);
+  const cD=keys.map(k=>byP[k].reduce((s,r)=>s+GFV.reduce((ss,v)=>ss+ni(r.gf?.[v]?.close),0),0));
+  const oD=keys.map(k=>byP[k].reduce((s,r)=>s+GFV.reduce((ss,v)=>ss+ni(r.gf?.[v]?.open),0),0));
 
-  document.getElementById('main-content').innerHTML = `
-    <div class="page-hdr">
-      <div>
-        <div class="page-title">Gagal Filling Analysis</div>
-        <div class="page-sub">Total GF: ${(agg.gfClose+agg.gfOpen).toLocaleString()} pcs</div>
-      </div>
+  const tot=a.gfc+a.gfo;
+  const selesai=tot>0?((a.gfc/tot)*100).toFixed(1):0;
+
+  document.getElementById('content').innerHTML=`
+    <div class="ph"><div class="ph-left"><div class="title">Gagal Filling Analysis</div><div class="sub">Total: ${tot.toLocaleString()} pcs</div></div></div>
+    <div class="kpi-row c4">
+      ${kpiCard('GF Close','c-grn','var(--grn)',a.gfc.toLocaleString(),'selesai',{v:'—',cls:'neu'})}
+      ${kpiCard('GF Open','c-warn','var(--warn)',a.gfo.toLocaleString(),'belum',{v:'—',cls:'neu'})}
+      ${kpiCard('Total GF','c-blue','var(--acc)',tot.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
+      ${kpiCard('% Selesai','c-grn','var(--grn)',selesai+'%','close/total',{v:'—',cls:'neu'})}
     </div>
-    <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--grn)"></div>
-        <div class="kpi-label">GF Close</div>
-        <div class="kpi-value green">${agg.gfClose.toLocaleString()}</div>
-        <div class="kpi-sub">sudah dikerjakan</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--warn)"></div>
-        <div class="kpi-label">GF Open</div>
-        <div class="kpi-value warn">${agg.gfOpen.toLocaleString()}</div>
-        <div class="kpi-sub">belum dikerjakan</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--acc)"></div>
-        <div class="kpi-label">Total GF</div>
-        <div class="kpi-value blue">${(agg.gfClose+agg.gfOpen).toLocaleString()}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-accent-bar" style="background:var(--purple)"></div>
-        <div class="kpi-label">% Penyelesaian</div>
-        <div class="kpi-value">${(agg.gfClose+agg.gfOpen)>0?((agg.gfClose/(agg.gfClose+agg.gfOpen))*100).toFixed(1):0}%</div>
-        <div class="kpi-sub">close dari total</div>
-      </div>
+    <div class="g2e">
+      <div class="card"><div class="card-h"><div class="card-title">📊 GF Trend (Close vs Open)</div></div><div class="card-b tall"><canvas id="ch-gftrend"></canvas></div></div>
+      <div class="card"><div class="card-h"><div class="card-title">📊 GF per Varian</div></div><div class="card-b tall"><canvas id="ch-gfvar"></canvas></div></div>
     </div>
-    <div class="grid-eq">
-      <div class="card">
-        <div class="card-hdr"><div class="card-title"><span class="icon">📊</span> GF Close vs Open (Trend)</div></div>
-        <div class="card-body tall"><canvas id="ch-gf-trend"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><div class="card-title"><span class="icon">📊</span> GF per Varian</div></div>
-        <div class="card-body tall"><canvas id="ch-gf-var"></canvas></div>
-      </div>
-    </div>
-    ${renderGFTable(gfByVariant)}
+    ${tblGF(gfv)}
   `;
-
-  buildStackedBarChart('ch-gf-trend', labels, closeData, openData);
-  buildGFVariantChart('ch-gf-var', gfByVariant);
+  buildStacked('ch-gftrend',labs,cD,oD);
+  buildGFVar('ch-gfvar',gfv);
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // KARDUS VIEW
-// ════════════════════════════════════════════════════════════
-function renderKardusView(records) {
-  const kardusMap = {};
-  KARDUS_LINES.forEach(kl => {
-    kardusMap[kl.id] = {label:kl.label,variant:kl.variant,target:kl.target,total:0,over:0};
-    records.forEach(r => {
-      const t = n(r.kardus?.[kl.id]?.total);
-      kardusMap[kl.id].total += t;
-      if (t > kl.target) kardusMap[kl.id].over++;
+// ══════════════════════════════════════════════
+function renderKardus(recs){
+  const km={};
+  KL.forEach(k=>{
+    km[k.id]={...k,total:0,over:0};
+    recs.forEach(r=>{
+      const t=ni(r.kardus?.[k.id]?.total);
+      km[k.id].total+=t;
+      if(t>k.t) km[k.id].over++;
     });
   });
+  const grandTotal=Object.values(km).reduce((s,k)=>s+k.total,0);
 
-  document.getElementById('main-content').innerHTML = `
-    <div class="page-hdr">
-      <div>
-        <div class="page-title">Waste Kardus Analysis</div>
-        <div class="page-sub">Total: ${Object.values(kardusMap).reduce((s,k)=>s+k.total,0).toLocaleString()} pcs</div>
-      </div>
+  document.getElementById('content').innerHTML=`
+    <div class="ph"><div class="ph-left"><div class="title">Waste Kardus Analysis</div><div class="sub">Grand Total: ${grandTotal.toLocaleString()} pcs</div></div></div>
+    <div class="card">
+      <div class="card-h"><div class="card-title">📊 Kardus per Line</div></div>
+      <div class="card-b"><canvas id="ch-kard" style="max-height:200px"></canvas></div>
     </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hdr"><div class="card-title"><span class="icon">📊</span> Kardus per Line</div></div>
-      <div class="card-body"><canvas id="ch-kard" style="max-height:200px"></canvas></div>
-    </div>
-    ${renderKardusTable(kardusMap, records)}
+    ${tblKardus(km,recs.length)}
   `;
-
-  buildKardusChart('ch-kard', kardusMap);
+  buildKardus('ch-kard',km);
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // CHART BUILDERS
-// ════════════════════════════════════════════════════════════
-const CHART_COLORS = ['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d','#c2410c','#0284c7'];
-const CHART_COLORS_A = CHART_COLORS.map(c => c + 'cc');
+// ══════════════════════════════════════════════
+const CC=['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d','#c2410c','#0284c7'];
+const CA=CC.map(c=>c+'bb');
 
-function buildTrendChart(id, labels, outputData, wasteData) {
+function buildTrend(id,labs,od,wd){
   destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  chartInstances[id] = new Chart(ctx, {
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Output (Pcs)',data:outputData,backgroundColor:'#2563eb22',borderColor:'#2563eb',borderWidth:1.5,yAxisID:'y',order:2},
-      {label:'Waste (Pcs)',data:wasteData,type:'line',borderColor:'#dc2626',backgroundColor:'#dc262614',borderWidth:2,pointRadius:3,tension:.35,fill:true,yAxisID:'y2',order:1}
-    ]},
-    options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{labels:{font:{size:11},boxWidth:12,padding:14}}},
-      scales:{
-        y:{position:'left',ticks:{font:{size:10}},grid:{color:'#f1f3f5'}},
-        y2:{position:'right',ticks:{font:{size:10},color:'#dc2626'},grid:{display:false}},
-        x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f1f3f5'}}
-      }}
-  });
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[
+    {label:'Output',data:od,backgroundColor:'#2563eb1a',borderColor:'#2563eb',borderWidth:1.5,yAxisID:'y',order:2},
+    {label:'Waste',data:wd,type:'line',borderColor:'#dc2626',backgroundColor:'#dc262612',borderWidth:2,pointRadius:3,tension:.3,fill:true,yAxisID:'y2',order:1}
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
+    scales:{y:{position:'left',ticks:{font:{size:10}},grid:{color:'#f0f2f5'}},
+            y2:{position:'right',ticks:{font:{size:10},color:'#dc2626'},grid:{display:false}},
+            x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f0f2f5'}}}}});
 }
-
-function buildPctChart(id, labels, pctData) {
+function buildPct(id,labs,pd){
   destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  const ptColors = pctData.map(v => v>5?'#dc2626':v>2?'#d97706':'#16a34a');
-  chartInstances[id] = new Chart(ctx, {
-    type:'line',
-    data:{labels,datasets:[
-      {label:'% Waste',data:pctData,borderColor:'#d97706',backgroundColor:'#d9770614',borderWidth:2,pointRadius:4,pointBackgroundColor:ptColors,tension:.3,fill:true},
-      {label:'Target 2%',data:labels.map(()=>2),borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
-      {label:'Batas 5%',data:labels.map(()=>5),borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
-    ]},
-    options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{labels:{font:{size:11},boxWidth:12,padding:14}}},
-      scales:{
-        y:{min:0,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f1f3f5'}},
-        x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f1f3f5'}}
-      }}
-  });
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const pc=pd.map(v=>v>5?'#dc2626':v>2?'#d97706':'#16a34a');
+  charts[id]=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[
+    {label:'% Waste',data:pd,borderColor:'#d97706',backgroundColor:'#d9770612',borderWidth:2,pointRadius:4,pointBackgroundColor:pc,tension:.3,fill:true},
+    {label:'Target 2%',data:labs.map(()=>2),borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
+    {label:'Batas 5%',data:labs.map(()=>5),borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
+  ]},options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
+    scales:{y:{min:0,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'}},
+            x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f0f2f5'}}}}});
 }
-
-function buildShiftChart(id, shiftMap) {
+function buildDonut(id,labs,data){
   destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  chartInstances[id] = new Chart(ctx, {
-    type:'doughnut',
-    data:{
-      labels:['Shift 1 (06-14)','Shift 2 (14-22)','Shift 3 (22-06)'],
-      datasets:[{data:[shiftMap['1']?.waste||0,shiftMap['2']?.waste||0,shiftMap['3']?.waste||0],
-        backgroundColor:['#2563ebcc','#d97706cc','#7c3aedcc'],borderColor:['#2563eb','#d97706','#7c3aed'],borderWidth:1.5}]
-    },
-    options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12,padding:10}}}}
-  });
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'doughnut',data:{labels:labs,datasets:[{data,backgroundColor:CA.slice(0,3),borderColor:'#fff',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}}}});
 }
-
-function buildLineChart(id, labels, data, color, label) {
+function buildBar(id,labs,data){
   destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  chartInstances[id] = new Chart(ctx, {
-    type:'line',
-    data:{labels,datasets:[{label,data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:3,tension:.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
-      scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f1f3f5'}},y:{ticks:{font:{size:10}},grid:{color:'#f1f3f5'}}}}
-  });
-}
-
-function buildLineBarChart(id, lineMap) {
-  destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  const lines = Object.keys(lineMap);
-  chartInstances[id] = new Chart(ctx, {
-    type:'bar',
-    data:{labels:lines,datasets:[{label:'Waste (Pcs)',data:lines.map(l=>lineMap[l].waste),backgroundColor:CHART_COLORS_A,borderColor:CHART_COLORS,borderWidth:1.5}]},
-    options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}},grid:{color:'#f1f3f5'}}}}
-  });
-}
-
-function buildHBarChart(id, labels, data) {
-  destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  chartInstances[id] = new Chart(ctx, {
-    type:'bar',data:{labels,datasets:[{label:'Pcs',data,backgroundColor:CHART_COLORS_A,borderColor:CHART_COLORS,borderWidth:1}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:10}},grid:{color:'#f1f3f5'}},y:{ticks:{font:{size:9}}}}}
-  });
-}
-
-function buildPieChart(id, labels, data) {
-  destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  chartInstances[id] = new Chart(ctx, {
-    type:'pie',data:{labels,datasets:[{data,backgroundColor:CHART_COLORS_A,borderColor:'#fff',borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:6}}}}
-  });
-}
-
-function buildStackedBarChart(id, labels, closeData, openData) {
-  destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  chartInstances[id] = new Chart(ctx, {
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Close',data:closeData,backgroundColor:'#16a34acc',borderColor:'#16a34a',borderWidth:1,stack:'gf'},
-      {label:'Open',data:openData,backgroundColor:'#d97706cc',borderColor:'#d97706',borderWidth:1,stack:'gf'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{labels:{font:{size:11},boxWidth:12,padding:14}}},
-      scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f1f3f5'}}}}
-  });
-}
-
-function buildGFVariantChart(id, gfByVariant) {
-  destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  const labels = GF_VARIANTS;
-  chartInstances[id] = new Chart(ctx, {
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Close',data:labels.map(v=>gfByVariant[v]?.close||0),backgroundColor:'#16a34acc',borderColor:'#16a34a',borderWidth:1,stack:'v'},
-      {label:'Open',data:labels.map(v=>gfByVariant[v]?.open||0),backgroundColor:'#d97706cc',borderColor:'#d97706',borderWidth:1,stack:'v'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
-      scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f1f3f5'}}}}
-  });
-}
-
-function buildKardusChart(id, kardusMap) {
-  destroyChart(id);
-  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  const labels = Object.values(kardusMap).map(k=>k.label);
-  const totals = Object.values(kardusMap).map(k=>k.total);
-  const targets = Object.values(kardusMap).map(k=>k.target*(Object.keys(kardusMap).length));
-  chartInstances[id] = new Chart(ctx, {
-    type:'bar',
-    data:{labels,datasets:[{label:'Total',data:totals,backgroundColor:totals.map((v,i)=>v>Object.values(kardusMap)[i].target?'#dc2626cc':'#16a34acc'),borderWidth:0}]},
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[{label:'Waste',data,backgroundColor:CA,borderColor:CC,borderWidth:1}]},
     options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}},grid:{color:'#f1f3f5'}}}}
-  });
+      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
+}
+function buildLine(id,labs,data,color,label){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[{label,data,borderColor:color,backgroundColor:color+'18',borderWidth:2,pointRadius:3,tension:.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},
+      scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f0f2f5'}},y:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
+}
+function buildHBar(id,labs,data){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[{label:'Pcs',data,backgroundColor:CA,borderColor:CC,borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}},y:{ticks:{font:{size:9}}}}}});
+}
+function buildPie(id,labs,data){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'pie',data:{labels:labs,datasets:[{data,backgroundColor:CA,borderColor:'#fff',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:5}}}}});
+}
+function buildStacked(id,labs,cd,od){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[
+    {label:'Close',data:cd,backgroundColor:'#16a34abb',borderColor:'#16a34a',borderWidth:1,stack:'s'},
+    {label:'Open', data:od,backgroundColor:'#d97706bb',borderColor:'#d97706',borderWidth:1,stack:'s'}
+  ]},options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:10}}},
+    scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
+}
+function buildGFVar(id,gfv){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:GFV,datasets:[
+    {label:'Close',data:GFV.map(v=>gfv[v]?.c||0),backgroundColor:'#16a34abb',borderColor:'#16a34a',borderWidth:1,stack:'v'},
+    {label:'Open', data:GFV.map(v=>gfv[v]?.o||0),backgroundColor:'#d97706bb',borderColor:'#d97706',borderWidth:1,stack:'v'}
+  ]},options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},
+    scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
+}
+function buildKardus(id,km){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const vals=Object.values(km);
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:vals.map(k=>k.l),datasets:[{label:'Total',data:vals.map(k=>k.total),backgroundColor:vals.map(k=>k.total>k.t?'#dc2626bb':'#16a34abb'),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // TABLE RENDERERS
-// ════════════════════════════════════════════════════════════
-function renderLineTable(lineMap) {
-  const rows = Object.entries(lineMap).sort((a,b)=>b[1].waste-a[1].waste).map(([line,d]) => {
-    const pct = d.output>0?(d.waste/d.output*100).toFixed(2):'—';
-    return `<tr>
-      <td><span class="badge badge-blue">${line}</span></td>
-      <td class="num">${d.output.toLocaleString()}</td>
-      <td class="num">${d.waste.toLocaleString()}</td>
-      <td>${pctBadge(pct)}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:20px">Tidak ada data</td></tr>';
-
-  return `<div class="card" style="margin-bottom:14px">
-    <div class="card-hdr"><div class="card-title"><span class="icon">🏭</span> Performa per Line</div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Line</th><th style="text-align:right">Output (Pcs)</th><th style="text-align:right">Waste (Pcs)</th><th>% Waste</th></tr></thead><tbody>${rows}</tbody></table></div>
-  </div>`;
+// ══════════════════════════════════════════════
+function tblLine(lm){
+  const rows=Object.entries(lm).sort((a,b)=>b[1].w-a[1].w).map(([line,d])=>{
+    const p=d.out>0?(d.w/d.out*100).toFixed(2):'—';
+    return `<tr><td><span class="badge b-blue">${line}</span></td><td class="r m">${d.out.toLocaleString()}</td><td class="r m">${d.w.toLocaleString()}</td><td>${pBadge(p)}</td></tr>`;
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:16px">—</td></tr>';
+  return `<div class="card"><div class="card-h"><div class="card-title">🏭 Performa per Line</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Line</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-function renderShiftTable(records) {
-  const rows = ['1','2','3'].map(s => {
-    const recs = records.filter(r => r.header?.shift===s);
-    const a = aggregateRecords(recs);
-    return `<tr>
-      <td><span class="badge badge-blue">Shift ${s}</span></td>
-      <td class="num mono">${recs.length}</td>
-      <td class="num">${a.totalOutput.toLocaleString()}</td>
-      <td class="num">${a.totalWaste.toLocaleString()}</td>
-      <td>${pctBadge(a.wastePct)}</td>
-      <td class="num">${(a.gfClose+a.gfOpen).toLocaleString()}</td>
-    </tr>`;
+function tblShift(recs){
+  const rows=['1','2','3'].map(s=>{
+    const r=recs.filter(x=>x.header?.shift===s), a=agg(r);
+    return `<tr><td><span class="badge b-blue">Shift ${s}</span></td><td class="r m">${r.length}</td><td class="r m">${a.out.toLocaleString()}</td><td class="r m">${a.waste.toLocaleString()}</td><td>${pBadge(a.pct)}</td><td class="r m">${(a.gfc+a.gfo).toLocaleString()}</td></tr>`;
   }).join('');
-
-  return `<div class="card" style="margin-bottom:14px">
-    <div class="card-hdr"><div class="card-title"><span class="icon">🕐</span> Ringkasan per Shift</div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Shift</th><th style="text-align:right">Sesi</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th></tr></thead><tbody>${rows}</tbody></table></div>
-  </div>`;
+  return `<div class="card"><div class="card-h"><div class="card-title">🕐 per Shift</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Shift</th><th style="text-align:right">Sesi</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-function renderWasteTypeTable(sorted) {
-  const rows = sorted.map(({t,v}) => `<tr>
-    <td style="font-size:12px">${t}</td>
-    <td class="num">${v.toLocaleString()}</td>
-    <td>
-      <div style="background:var(--surface2);border-radius:4px;height:6px;min-width:80px">
-        <div style="background:var(--red);height:100%;border-radius:4px;width:${sorted[0].v>0?(v/sorted[0].v*100).toFixed(0):0}%"></div>
-      </div>
-    </td>
+function tblWasteType(sorted){
+  const max=sorted[0]?.v||1;
+  const rows=sorted.map(({t,v})=>`<tr><td style="font-size:12px">${t}</td><td class="r m">${v.toLocaleString()}</td><td style="min-width:100px"><div class="pbar-bg"><div class="pbar-fill" style="width:${(v/max*100).toFixed(0)}%;background:var(--red)"></div></div></td></tr>`).join('');
+  return `<div class="card"><div class="card-h"><div class="card-title">📋 Detail Jenis Waste</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Jenis</th><th style="text-align:right">Total</th><th>Proporsi</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
+function tblMachine(mm){
+  const rows=Object.entries(mm).sort((a,b)=>b[1].w-a[1].w).slice(0,20).map(([m,d])=>`<tr>
+    <td><span class="badge b-gray">${m}</span></td>
+    <td><span class="badge b-blue">${d.line}</span></td>
+    <td class="r m">${d.w.toLocaleString()}</td>
+    <td class="r m">${d.n}</td>
+    <td class="r m">${d.n>0?(d.w/d.n).toFixed(0):0}</td>
   </tr>`).join('');
-  return `<div class="card" style="margin-bottom:14px">
-    <div class="card-hdr"><div class="card-title"><span class="icon">📋</span> Detail per Jenis Waste</div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Jenis Waste</th><th style="text-align:right">Total (Pcs)</th><th>Proporsi</th></tr></thead><tbody>${rows}</tbody></table></div>
-  </div>`;
+  return `<div class="card"><div class="card-h"><div class="card-title">⚙️ Top 20 Mesin</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mesin</th><th>Line</th><th style="text-align:right">Total</th><th style="text-align:right">Sesi</th><th style="text-align:right">Avg</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-function renderMachineTable(machineMap) {
-  const rows = Object.entries(machineMap).sort((a,b)=>b[1].waste-a[1].waste).slice(0,20).map(([m,d]) => `<tr>
-    <td><span class="badge badge-gray">${m}</span></td>
-    <td><span class="badge badge-blue">${d.line}</span></td>
-    <td class="num">${d.waste.toLocaleString()}</td>
-    <td class="num mono">${d.count}</td>
-    <td class="num mono">${d.count>0?(d.waste/d.count).toFixed(0):0}</td>
-  </tr>`).join('');
-  return `<div class="card" style="margin-bottom:14px">
-    <div class="card-hdr"><div class="card-title"><span class="icon">⚙️</span> Waste per Mesin (Top 20)</div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mesin</th><th>Line</th><th style="text-align:right">Total Waste</th><th style="text-align:right">Sesi</th><th style="text-align:right">Avg/Sesi</th></tr></thead><tbody>${rows}</tbody></table></div>
-  </div>`;
-}
-
-function renderGFTable(gfByVariant) {
-  const rows = GF_VARIANTS.map(v => {
-    const d = gfByVariant[v];
-    const tot = d.close+d.open;
-    const pct = tot>0?((d.close/tot)*100).toFixed(0):0;
-    return `<tr>
-      <td><span class="badge badge-purple">${v}</span></td>
-      <td class="num">${d.close.toLocaleString()}</td>
-      <td class="num">${d.open.toLocaleString()}</td>
-      <td class="num">${tot.toLocaleString()}</td>
-      <td><span class="badge ${pct>=80?'badge-green':pct>=50?'badge-warn':'badge-red'}">${pct}%</span></td>
-    </tr>`;
+function tblGF(gfv){
+  const rows=GFV.map(v=>{const d=gfv[v],tot=d.c+d.o,p=tot>0?((d.c/tot)*100).toFixed(0):0;
+    return `<tr><td><span class="badge b-pur">${v}</span></td><td class="r m">${d.c.toLocaleString()}</td><td class="r m">${d.o.toLocaleString()}</td><td class="r m">${tot.toLocaleString()}</td><td><span class="badge ${p>=80?'b-grn':p>=50?'b-warn':'b-red'}">${p}%</span></td></tr>`;
   }).join('');
-  return `<div class="card">
-    <div class="card-hdr"><div class="card-title"><span class="icon">📋</span> GF per Varian</div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Varian</th><th style="text-align:right">Close</th><th style="text-align:right">Open</th><th style="text-align:right">Total</th><th>% Close</th></tr></thead><tbody>${rows}</tbody></table></div>
-  </div>`;
+  return `<div class="card"><div class="card-h"><div class="card-title">📋 GF per Varian</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Varian</th><th style="text-align:right">Close</th><th style="text-align:right">Open</th><th style="text-align:right">Total</th><th>% Close</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-function renderKardusTable(kardusMap, records) {
-  const rows = Object.values(kardusMap).map(k => {
-    const avgPerSession = records.length>0?(k.total/records.length).toFixed(2):0;
-    const overRate = records.length>0?((k.over/records.length)*100).toFixed(0):0;
-    return `<tr>
-      <td><span class="badge badge-gray">${k.label}</span></td>
-      <td><span class="badge badge-blue">${k.variant}</span></td>
-      <td class="num">${k.total.toLocaleString()}</td>
-      <td class="num">${k.target}</td>
-      <td class="num mono">${avgPerSession}</td>
-      <td><span class="badge ${overRate>50?'badge-red':overRate>20?'badge-warn':'badge-green'}">${overRate}%</span></td>
-    </tr>`;
+function tblKardus(km,n){
+  const rows=Object.values(km).map(k=>{
+    const avg=n>0?(k.total/n).toFixed(1):0;
+    const or=n>0?((k.over/n)*100).toFixed(0):0;
+    return `<tr><td><span class="badge b-gray">${k.l}</span></td><td><span class="badge b-blue">${k.v}</span></td><td class="r m">${k.total.toLocaleString()}</td><td class="r m">${k.t}</td><td class="r m">${avg}</td><td><span class="badge ${or>50?'b-red':or>20?'b-warn':'b-grn'}">${or}%</span></td></tr>`;
   }).join('');
-  return `<div class="card">
-    <div class="card-hdr"><div class="card-title"><span class="icon">📋</span> Detail Kardus per Line</div></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Line</th><th>Varian</th><th style="text-align:right">Total</th><th style="text-align:right">Target/sesi</th><th style="text-align:right">Avg/Sesi</th><th>% Sesi Over</th></tr></thead><tbody>${rows}</tbody></table></div>
-  </div>`;
+  return `<div class="card"><div class="card-h"><div class="card-title">📋 Kardus per Line</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Line</th><th>Varian</th><th style="text-align:right">Total</th><th style="text-align:right">Target</th><th style="text-align:right">Avg/Sesi</th><th>% Over</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // MANUAL INPUT
-// ════════════════════════════════════════════════════════════
-let miState = {
-  header: {group:'A', date: fmtDate(new Date()), shift:'1'},
-  lines: [],       // selected lines
-  lineShared: {},
-  entries: [],
-  gf: {},
-  kardus: {},
-};
+// ══════════════════════════════════════════════
+let MI={header:{group:'A',date:'',shift:'1'},lines:[],ls:{},entries:[],gf:{},kardus:{}};
 
-function renderManualInput() {
-  document.getElementById('main-content').innerHTML = `
-    <div class="page-hdr">
-      <div>
-        <div class="page-title">✏️ Input Manual</div>
-        <div class="page-sub">Untuk entry data dari form kertas ketika grup tidak input via WasteHub</div>
-      </div>
-      <div class="page-actions">
-        <button class="btn btn-green" onclick="saveManualSession()">💾 Simpan Sesi</button>
-        <button class="btn" onclick="resetManualInput()">↺ Reset</button>
+function renderManual(){
+  MI.header.date=MI.header.date||fmt(new Date());
+  document.getElementById('content').innerHTML=`
+    <div class="ph">
+      <div class="ph-left"><div class="title">✏️ Input Manual</div><div class="sub">Entry data dari form kertas</div></div>
+      <div class="ph-right">
+        <button class="btn btn-sm" onclick="resetMI()">↺ Reset</button>
+        <button class="btn btn-g" onclick="saveMI()">💾 Simpan ke Dashboard</button>
       </div>
     </div>
-
-    <div class="banner info">ℹ️ Data yang disimpan akan digabungkan dengan data dari Drive saat melihat dashboard.</div>
+    <div class="banner ban-info">ℹ️ Data disimpan di browser dan digabung bersama data Drive saat melihat chart.</div>
 
     <!-- HEADER -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hdr"><div class="card-title">📋 Header Sesi</div></div>
-      <div class="card-body">
-        <div class="field-row">
-          <div class="field">
-            <label>Grup</label>
-            <select class="inp" id="mi-group" onchange="miState.header.group=this.value">
-              <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+    <div class="card">
+      <div class="card-h"><div class="card-title">📋 Header Sesi</div></div>
+      <div class="card-b">
+        <div class="fr">
+          <div class="fc"><label class="fl">Grup</label>
+            <select class="fi" id="mi-grp" onchange="MI.header.group=this.value">
+              <option>A</option><option>B</option><option>C</option>
             </select>
           </div>
-          <div class="field">
-            <label>Tanggal</label>
-            <input type="date" class="inp inp-mono" id="mi-date" value="${miState.header.date}" onchange="miState.header.date=this.value"/>
+          <div class="fc"><label class="fl">Tanggal</label>
+            <input type="date" class="fi fi-mono" id="mi-date" value="${MI.header.date}" onchange="MI.header.date=this.value"/>
           </div>
-          <div class="field">
-            <label>Shift</label>
-            <select class="inp" id="mi-shift" onchange="miState.header.shift=this.value">
-              <option value="1">Shift 1 (06:00–14:00)</option>
-              <option value="2">Shift 2 (14:00–22:00)</option>
-              <option value="3">Shift 3 (22:00–06:00)</option>
+          <div class="fc" style="min-width:180px"><label class="fl">Shift</label>
+            <select class="fi" id="mi-shift" onchange="MI.header.shift=this.value">
+              <option value="1">Shift 1 — 06:00–14:00</option>
+              <option value="2">Shift 2 — 14:00–22:00</option>
+              <option value="3">Shift 3 — 22:00–06:00</option>
             </select>
           </div>
         </div>
-        <div class="field-row" style="margin-bottom:0">
-          <div class="field">
-            <label>Pilih Line Aktif</label>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">
-              ${ALL_LINES.map(l => `<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 8px;border:1px solid var(--bdr);border-radius:6px;background:var(--surface2)">
-                <input type="checkbox" id="mi-line-${l}" onchange="toggleMILine('${l}')" style="cursor:pointer"/> ${l}
-              </label>`).join('')}
-            </div>
+        <div>
+          <label class="fl">Line Aktif</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+            ${ALL_LINES.map(l=>`<label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--bdr);border-radius:6px;background:var(--s2);font-size:12px;cursor:pointer;transition:.12s" id="mi-lbl-${l}">
+              <input type="checkbox" id="mi-cb-${l}" ${MI.lines.includes(l)?'checked':''} onchange="toggleMILine('${l}')"/> ${l}
+            </label>`).join('')}
           </div>
         </div>
       </div>
     </div>
 
-    <!-- DYNAMIC LINE SECTIONS -->
-    <div id="mi-lines-container"></div>
+    <!-- LINE SECTIONS -->
+    <div id="mi-lines"></div>
 
-    <!-- GAGAL FILLING -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hdr"><div class="card-title">⚠️ Gagal Filling</div></div>
-      <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
-          ${GF_VARIANTS.map(v => `
-            <div style="background:var(--surface2);border:1px solid var(--bdr);border-radius:8px;padding:10px">
-              <div style="font-size:11px;font-weight:600;color:var(--tx);margin-bottom:8px">${v}</div>
-              <div class="field-row" style="gap:8px;margin-bottom:0">
-                <div class="field flex1">
-                  <label>Close</label>
-                  <input type="number" min="0" class="inp inp-num" placeholder="0"
-                    id="mi-gf-${v}-close" onchange="setMIGF('${v}','close',this.value)"/>
-                </div>
-                <div class="field flex1">
-                  <label>Open</label>
-                  <input type="number" min="0" class="inp inp-num" placeholder="0"
-                    id="mi-gf-${v}-open" onchange="setMIGF('${v}','open',this.value)"/>
-                </div>
-              </div>
-            </div>`).join('')}
+    <!-- GF -->
+    <div class="card">
+      <div class="card-h"><div class="card-title">⚠️ Gagal Filling</div></div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">
+          ${GFV.map(v=>`<div style="background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px">
+            <div style="font-size:11px;font-weight:600;margin-bottom:7px">${v}</div>
+            <div class="fr" style="margin-bottom:0;gap:6px">
+              <div class="fc"><label class="fl">Close</label><input type="number" min="0" class="fi fi-num" placeholder="0" value="${MI.gf[v]?.close||''}" onchange="MI.gf['${v}']=(MI.gf['${v}']||{});MI.gf['${v}'].close=this.value"/></div>
+              <div class="fc"><label class="fl">Open</label><input type="number" min="0" class="fi fi-num" placeholder="0" value="${MI.gf[v]?.open||''}" onchange="MI.gf['${v}']=(MI.gf['${v}']||{});MI.gf['${v}'].open=this.value"/></div>
+            </div>
+          </div>`).join('')}
         </div>
       </div>
     </div>
 
     <!-- KARDUS -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hdr"><div class="card-title">📋 Waste Kardus</div></div>
-      <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
-          ${KARDUS_LINES.map(kl => `
-            <div style="background:var(--surface2);border:1px solid var(--bdr);border-radius:8px;padding:10px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:600;color:var(--tx)">${kl.label}</span>
-                <span class="badge badge-blue" style="font-size:9px">${kl.variant}</span>
-              </div>
-              <div class="field">
-                <label>Total Waste (pcs) · target ${kl.target}</label>
-                <input type="number" min="0" class="inp inp-num" placeholder="0"
-                  id="mi-kard-${kl.id}" onchange="setMIKardus('${kl.id}',this.value)"/>
-              </div>
-            </div>`).join('')}
+    <div class="card">
+      <div class="card-h"><div class="card-title">📋 Waste Kardus</div></div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+          ${KL.map(k=>`<div style="background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+              <span style="font-size:11px;font-weight:600">${k.l}</span>
+              <span class="badge b-blue" style="font-size:9px">${k.v}</span>
+            </div>
+            <div class="fc"><label class="fl">Total (target ${k.t})</label>
+              <input type="number" min="0" class="fi fi-num" placeholder="0" value="${MI.kardus[k.id]?.total||''}" onchange="if(!MI.kardus['${k.id}'])MI.kardus['${k.id}']={total:'',causes:{}};MI.kardus['${k.id}'].total=this.value"/>
+            </div>
+          </div>`).join('')}
         </div>
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:24px">
-      <button class="btn" onclick="resetManualInput()">↺ Reset Form</button>
-      <button class="btn btn-primary" onclick="saveManualSession()">💾 Simpan Sesi ke Dashboard</button>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:24px">
+      <button class="btn" onclick="resetMI()">↺ Reset Form</button>
+      <button class="btn btn-p" onclick="saveMI()">💾 Simpan Sesi ke Dashboard</button>
     </div>
   `;
+  // restore select values
+  document.getElementById('mi-grp').value=MI.header.group;
+  document.getElementById('mi-shift').value=MI.header.shift;
+  renderMILines();
 }
 
-function toggleMILine(line) {
-  const checked = document.getElementById(`mi-line-${line}`).checked;
-  if (checked) {
-    if (!miState.lines.includes(line)) miState.lines.push(line);
-    if (!miState.lineShared[line]) {
-      const variants = LINE_CONFIG[line].variants;
-      const obv = {};
-      variants.forEach(v => { obv[v] = ''; });
-      miState.lineShared[line] = {variant:variants[0],outputByVariant:obv};
-    }
-    LINE_CONFIG[line].machines.forEach(m => {
-      if (!miState.entries.find(e=>e.line===line&&e.machine===m)) {
-        const waste = {};
-        WASTE_TYPES.forEach(t => { waste[t]=''; });
-        miState.entries.push({id:`${line}-${m}`,line,machine:m,waste});
-      }
-    });
+function toggleMILine(line){
+  const checked=document.getElementById(`mi-cb-${line}`).checked;
+  if(checked){
+    if(!MI.lines.includes(line)) MI.lines.push(line);
+    if(!MI.ls[line]){ const obv={}; LC[line].v.forEach(v=>{obv[v]=''}); MI.ls[line]={variant:LC[line].v[0],outputByVariant:obv}; }
+    LC[line].m.forEach(m=>{ if(!MI.entries.find(e=>e.line===line&&e.machine===m)){ const w={}; WT.forEach(t=>{w[t]=''}); MI.entries.push({id:`${line}-${m}`,line,machine:m,waste:w}); }});
   } else {
-    miState.lines = miState.lines.filter(l=>l!==line);
-    miState.entries = miState.entries.filter(e=>e.line!==line);
-    delete miState.lineShared[line];
+    MI.lines=MI.lines.filter(l=>l!==line);
+    MI.entries=MI.entries.filter(e=>e.line!==line);
+    delete MI.ls[line];
   }
-  renderMILinesSections();
+  renderMILines();
 }
 
-function renderMILinesSections() {
-  const el = document.getElementById('mi-lines-container');
-  if (!miState.lines.length) { el.innerHTML=''; return; }
-  el.innerHTML = miState.lines.map(line => {
-    const sh = miState.lineShared[line];
-    const variants = LINE_CONFIG[line].variants;
-    const machineEntries = miState.entries.filter(e=>e.line===line);
-
-    const variantInputs = variants.map(v => `
-      <div class="field">
-        <label>Output ${v} (Box)</label>
-        <input type="number" min="0" class="inp inp-num" placeholder="0"
-          id="mi-out-${line}-${v}" style="width:110px"
-          onchange="setMIOutput('${line}','${v}',this.value)"/>
-      </div>`).join('');
-
-    const wasteRows = machineEntries.map(e => `
+function renderMILines(){
+  const el=document.getElementById('mi-lines'); if(!el) return;
+  if(!MI.lines.length){el.innerHTML='';return;}
+  el.innerHTML=MI.lines.map(line=>{
+    const sh=MI.ls[line]; if(!sh) return '';
+    const outInputs=LC[line].v.map(v=>`<div class="fc" style="min-width:120px"><label class="fl">Output ${v} (Box)</label><input type="number" min="0" class="fi fi-num" placeholder="0" value="${sh.outputByVariant[v]||''}" onchange="MI.ls['${line}'].outputByVariant['${v}']=this.value"/></div>`).join('');
+    const machSecs=MI.entries.filter(e=>e.line===line).map(e=>`
       <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bdr)">
-          Mesin ${e.machine}
-        </div>
-        <div class="waste-grid">
-          ${WASTE_TYPES.map(t => `
-            <div class="waste-row">
-              <span class="waste-label" title="${t}">${t.length>26?t.substring(0,26)+'…':t}</span>
-              <input type="number" min="0" class="waste-inp" placeholder="0"
-                onchange="setMIWaste('${line}','${e.machine}','${t}',this.value)"/>
-            </div>`).join('')}
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bdr)">Mesin ${e.machine}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+          ${WT.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--s2);border:1px solid var(--bdr);border-radius:5px">
+            <span style="flex:1;font-size:10px;color:var(--tx2)" title="${t}">${t.length>28?t.substring(0,28)+'…':t}</span>
+            <input type="number" min="0" style="width:64px;text-align:right;font-family:var(--mono);font-size:11px;border:1px solid var(--bdr);background:var(--surface);border-radius:4px;padding:3px 5px;height:26px" placeholder="0" value="${e.waste[t]||''}" onchange="(MI.entries.find(x=>x.line==='${line}'&&x.machine==='${e.machine}')?.waste||{})['${t}']=this.value"/>
+          </div>`).join('')}
         </div>
       </div>`).join('');
-
-    return `
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-hdr">
-          <div class="card-title">🏭 Line ${line}</div>
-          <div class="card-meta">${LINE_CONFIG[line].machines.join(', ')}</div>
-        </div>
-        <div class="card-body">
-          <div class="mi-section">
-            <div class="mi-section-title">📦 Output</div>
-            <div class="field-row">${variantInputs}</div>
-          </div>
-          <div class="mi-section">
-            <div class="mi-section-title">♻️ Waste per Mesin</div>
-            ${wasteRows}
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-function setMIOutput(line, variant, val) {
-  if (miState.lineShared[line]) miState.lineShared[line].outputByVariant[variant] = val;
-}
-function setMIWaste(line, machine, type, val) {
-  const e = miState.entries.find(e=>e.line===line&&e.machine===machine);
-  if (e) e.waste[type] = val;
-}
-function setMIGF(variant, field, val) {
-  if (!miState.gf[variant]) miState.gf[variant] = {close:'',open:''};
-  miState.gf[variant][field] = val;
-}
-function setMIKardus(id, val) {
-  if (!miState.kardus[id]) {
-    const causes = {};
-    ['Robek di CS','Robek di Modular','Robek pada saat Packing','Sealing Double','Lainnya'].forEach(c=>{causes[c]='';});
-    miState.kardus[id] = {total:'',causes};
-  }
-  miState.kardus[id].total = val;
-}
-
-function saveManualSession() {
-  const session = {
-    savedAt: new Date().toISOString(),
-    isManual: true,
-    header: {...miState.header},
-    lineShared: JSON.parse(JSON.stringify(miState.lineShared)),
-    entries: JSON.parse(JSON.stringify(miState.entries)),
-    gf: JSON.parse(JSON.stringify(miState.gf)),
-    kardus: JSON.parse(JSON.stringify(miState.kardus)),
-  };
-
-  // Check dupe
-  const existing = localSessions.findIndex(s =>
-    s.header.group===session.header.group &&
-    s.header.date===session.header.date &&
-    s.header.shift===session.header.shift
-  );
-  if (existing >= 0) {
-    if (!confirm(`Sesi Grup ${session.header.group} Shift ${session.header.shift} tanggal ${session.header.date} sudah ada. Timpa?`)) return;
-    localSessions[existing] = session;
-  } else {
-    localSessions.push(session);
-  }
-
-  localStorage.setItem('wh_local_sessions', JSON.stringify(localSessions));
-  document.getElementById('manual-badge').style.display = 'inline';
-  showToast('✓ Sesi disimpan ke dashboard', 'ok');
-  resetManualInput();
-}
-
-function resetManualInput() {
-  miState = {
-    header:{group:'A',date:fmtDate(new Date()),shift:'1'},
-    lines:[],lineShared:{},entries:{},gf:{},kardus:{}
-  };
-  renderManualInput();
-}
-
-// ════════════════════════════════════════════════════════════
-// SESSIONS VIEW
-// ════════════════════════════════════════════════════════════
-function renderSessionsView() {
-  const el = document.getElementById('main-content');
-  const allSessions = [
-    ...localSessions.map(s => ({...s, _src:'manual'})),
-    ...allRecords.map(s => ({...s, _src:'drive'}))
-  ].sort((a,b) => (b.header?.date||'') > (a.header?.date||'') ? 1 : -1);
-
-  if (!allSessions.length) {
-    el.innerHTML = `<div class="page-hdr"><div><div class="page-title">🗃️ Sesi Tersimpan</div></div></div>
-      <div class="empty-state"><div class="empty-icon">🗃️</div><div class="empty-title">Belum ada sesi</div><div class="empty-sub">Data akan muncul setelah refresh dari Drive atau input manual.</div></div>`;
-    return;
-  }
-
-  const rows = allSessions.map((s, i) => {
-    const agg = aggregateRecords([s]);
-    const src = s._src === 'manual';
-    return `<tr>
-      <td><span class="badge ${src?'badge-warn':'badge-blue'}">${src?'Manual':'Drive'}</span></td>
-      <td class="mono">${s.header?.date||'—'}</td>
-      <td><span class="badge badge-gray">Grup ${s.header?.group||'—'}</span></td>
-      <td><span class="badge badge-gray">Shift ${s.header?.shift||'—'}</span></td>
-      <td class="num">${agg.totalOutput.toLocaleString()}</td>
-      <td class="num">${agg.totalWaste.toLocaleString()}</td>
-      <td>${pctBadge(agg.wastePct)}</td>
-      <td class="num">${(agg.gfClose+agg.gfOpen).toLocaleString()}</td>
-      ${src ? `<td><button class="btn btn-sm btn-danger" onclick="deleteLocalSession(${localSessions.indexOf(s)})">Hapus</button></td>` : '<td>—</td>'}
-    </tr>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div class="page-hdr">
-      <div>
-        <div class="page-title">🗃️ Sesi Tersimpan</div>
-        <div class="page-sub">${localSessions.length} manual · ${allRecords.length} dari Drive</div>
-      </div>
-      <div class="page-actions">
-        ${localSessions.length ? `<button class="btn btn-danger btn-sm" onclick="clearAllLocal()">🗑 Hapus Semua Manual</button>` : ''}
-      </div>
-    </div>
-    <div class="card">
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead><tr><th>Sumber</th><th>Tanggal</th><th>Grup</th><th>Shift</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th><th>Aksi</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+    return `<div class="card">
+      <div class="card-h"><div class="card-title">🏭 Line ${line}</div><div class="card-meta">${LC[line].m.join(', ')}</div></div>
+      <div class="card-b">
+        <div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);margin-bottom:8px">📦 Output</div><div class="fr">${outInputs}</div></div>
+        <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);margin-bottom:8px">♻️ Waste per Mesin</div>${machSecs}</div>
       </div>
     </div>`;
+  }).join('');
 }
 
-function deleteLocalSession(idx) {
-  if (!confirm('Hapus sesi ini?')) return;
-  localSessions.splice(idx, 1);
-  localStorage.setItem('wh_local_sessions', JSON.stringify(localSessions));
-  if (!localSessions.length) document.getElementById('manual-badge').style.display = 'none';
-  showToast('Sesi dihapus', 'warn');
-  renderSessionsView();
+function saveMI(){
+  const s={savedAt:new Date().toISOString(),isManual:true,header:{...MI.header},lineShared:JSON.parse(JSON.stringify(MI.ls)),entries:JSON.parse(JSON.stringify(MI.entries)),gf:JSON.parse(JSON.stringify(MI.gf)),kardus:JSON.parse(JSON.stringify(MI.kardus))};
+  const dup=localSessions.findIndex(x=>x.header.group===s.header.group&&x.header.date===s.header.date&&x.header.shift===s.header.shift);
+  if(dup>=0){
+    if(!confirm(`Sesi Grup ${s.header.group} Shift ${s.header.shift} tgl ${s.header.date} sudah ada. Timpa?`)) return;
+    localSessions[dup]=s;
+  } else { localSessions.push(s); }
+  localStorage.setItem('wh_manual',JSON.stringify(localSessions));
+  document.getElementById('badge-manual').style.display='inline';
+  mergeAll();
+  showToast('✓ Sesi tersimpan','ok');
+  resetMI();
 }
 
-function clearAllLocal() {
-  if (!confirm('Hapus semua sesi manual? Tidak dapat dikembalikan.')) return;
-  localSessions = [];
-  localStorage.setItem('wh_local_sessions', '[]');
-  document.getElementById('manual-badge').style.display = 'none';
-  showToast('Semua sesi manual dihapus', 'warn');
-  renderSessionsView();
+function resetMI(){
+  MI={header:{group:'A',date:fmt(new Date()),shift:'1'},lines:[],ls:{},entries:[],gf:{},kardus:{}};
+  renderManual();
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// SESSIONS VIEW
+// ══════════════════════════════════════════════
+function renderSessions(){
+  const all=[
+    ...localSessions.map(s=>({...s,_src:'manual'})),
+    ...uploadedRecords.map(s=>({...s,_src:'upload'})),
+    ...driveRecords.map(s=>({...s,_src:'drive'}))
+  ].sort((a,b)=>(b.header?.date||'')>(a.header?.date||'')?1:-1);
+
+  const rows=all.map((s,i)=>{
+    const a=agg([s]);
+    const srcBadge={manual:'b-warn',upload:'b-pur',drive:'b-blue'}[s._src];
+    const srcLabel={manual:'Manual',upload:'Upload',drive:'Drive'}[s._src];
+    const isDeletable=s._src==='manual';
+    return `<tr>
+      <td><span class="badge ${srcBadge}">${srcLabel}</span></td>
+      <td class="m">${s.header?.date||'—'}</td>
+      <td><span class="badge b-gray">Grp ${s.header?.group||'—'}</span></td>
+      <td><span class="badge b-gray">Sft ${s.header?.shift||'—'}</span></td>
+      <td class="r m">${a.out.toLocaleString()}</td>
+      <td class="r m">${a.waste.toLocaleString()}</td>
+      <td>${pBadge(a.pct)}</td>
+      <td class="r m">${(a.gfc+a.gfo).toLocaleString()}</td>
+      <td>${isDeletable?`<button class="btn btn-xs btn-r" onclick="delLocal(${localSessions.indexOf(s)})">Hapus</button>`:'—'}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--tx3)">Belum ada sesi</td></tr>';
+
+  document.getElementById('content').innerHTML=`
+    <div class="ph">
+      <div class="ph-left"><div class="title">🗃️ Semua Sesi</div><div class="sub">${localSessions.length} manual · ${uploadedRecords.length} upload · ${driveRecords.length} Drive</div></div>
+      <div class="ph-right">${localSessions.length?`<button class="btn btn-r btn-sm" onclick="clearLocal()">🗑 Hapus Semua Manual</button>`:''}</div>
+    </div>
+    <div class="card"><div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Sumber</th><th>Tanggal</th><th>Grup</th><th>Shift</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th><th>Aksi</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>`;
+}
+
+function delLocal(idx){
+  if(!confirm('Hapus sesi ini?')) return;
+  localSessions.splice(idx,1);
+  localStorage.setItem('wh_manual',JSON.stringify(localSessions));
+  if(!localSessions.length) document.getElementById('badge-manual').style.display='none';
+  mergeAll(); showToast('Sesi dihapus','warn'); renderSessions();
+}
+function clearLocal(){
+  if(!confirm('Hapus semua sesi manual?')) return;
+  localSessions=[]; localStorage.setItem('wh_manual','[]');
+  document.getElementById('badge-manual').style.display='none';
+  mergeAll(); showToast('Semua manual dihapus','warn'); renderSessions();
+}
+
+// ══════════════════════════════════════════════
 // EXPORT
-// ════════════════════════════════════════════════════════════
-function exportCSV() {
-  const filtered = filterRecords(allRecords);
-  const rows = [['Tanggal','Grup','Shift','Line','Mesin','Output(Pcs)','TotalWaste','%Waste','GFClose','GFOpen','Kardus']];
-  filtered.forEach(r => {
-    const lines = Object.keys(r.lineShared||{});
-    if (!lines.length) {
-      rows.push([r.header?.date,r.header?.group,r.header?.shift,'—','—',0,0,0,
-        GF_VARIANTS.reduce((s,v)=>s+n(r.gf?.[v]?.close),0),
-        GF_VARIANTS.reduce((s,v)=>s+n(r.gf?.[v]?.open),0),
-        KARDUS_LINES.reduce((s,kl)=>s+n(r.kardus?.[kl.id]?.total),0)]);
-    } else {
-      lines.forEach(l => {
-        const op = calcLineOutput(r.lineShared,l);
-        const tw = (r.entries||[]).filter(e=>e.line===l).reduce((s,e)=>s+calcTotalWaste(e.waste||{}),0);
-        rows.push([r.header?.date,r.header?.group,r.header?.shift,l,'ALL',op,tw,op>0?(tw/op*100).toFixed(2):0,
-          GF_VARIANTS.reduce((s,v)=>s+n(r.gf?.[v]?.close),0),
-          GF_VARIANTS.reduce((s,v)=>s+n(r.gf?.[v]?.open),0),
-          KARDUS_LINES.reduce((s,kl)=>s+n(r.kardus?.[kl.id]?.total),0)]);
-      });
-    }
+// ══════════════════════════════════════════════
+function exportCSV(){
+  const filtered=filterByDate(allRecords);
+  const rows=[['Tanggal','Grup','Shift','Line','Output(Pcs)','Waste(Pcs)','%Waste','GFClose','GFOpen','Kardus','Sumber']];
+  filtered.forEach(r=>{
+    const lines=Object.keys(r.lineShared||{});
+    const src=r.isManual?'Manual':'Drive';
+    (lines.length?lines:['—']).forEach(l=>{
+      const op=l==='—'?0:lineOutput(r.lineShared,l);
+      const tw=(r.entries||[]).filter(e=>e.line===l||l==='—').reduce((s,e)=>s+totalWaste(e.waste||{}),0);
+      rows.push([r.header?.date,r.header?.group,r.header?.shift,l,op,tw,op>0?(tw/op*100).toFixed(2):0,
+        GFV.reduce((s,v)=>s+ni(r.gf?.[v]?.close),0),
+        GFV.reduce((s,v)=>s+ni(r.gf?.[v]?.open),0),
+        KL.reduce((s,k)=>s+ni(r.kardus?.[k.id]?.total),0),src]);
+    });
   });
-  const csv = rows.map(r=>r.join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = `WasteHub_Export_${fmtDate(new Date())}.csv`;
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`WasteHub_${fmt(new Date())}.csv`;
   a.click();
-  showToast('✓ CSV di-export', 'ok');
+  showToast('✓ CSV exported','ok');
 }
 
-// ════════════════════════════════════════════════════════════
-// CONFIG
-// ════════════════════════════════════════════════════════════
-function openConfig() {
-  document.getElementById('cfg-url').value = CFG.url;
-  document.getElementById('cfg-folder').value = CFG.folder;
-  const st = document.getElementById('cfg-conn-status');
-  if (CFG.url.includes('script.google.com')) {
-    st.className='banner ok'; st.textContent='✓ URL sudah dikonfigurasi';
-  } else {
-    st.className='banner warn'; st.textContent='⚪ Belum dikonfigurasi';
-  }
-  document.getElementById('modal-config').classList.add('show');
+// ══════════════════════════════════════════════
+// CONFIG MODAL
+// ══════════════════════════════════════════════
+let activeSource='';
+function selectSource(s){
+  activeSource=s;
+  ['drive','upload','manual-src'].forEach(x=>{
+    document.getElementById('sc-'+x)?.classList.toggle('active',x===s);
+    document.getElementById('src-'+x).style.display=x===s?'block':'none';
+  });
 }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
-function saveConfig() {
-  const url = document.getElementById('cfg-url').value.trim();
-  const folder = document.getElementById('cfg-folder').value.trim();
-  if (!url.includes('script.google.com')) { showToast('⚠ URL tidak valid', 'err'); return; }
-  CFG.url = url; CFG.folder = folder;
-  localStorage.setItem('wh_url', url);
-  localStorage.setItem('wh_folder', folder);
-  updateSidebarCfgInfo();
-  closeModal('modal-config');
-  showToast('✓ Konfigurasi disimpan', 'ok');
-  fetchAndRender();
-}
-
-function updateSidebarCfgInfo() {
-  const el = document.getElementById('cfg-info-sidebar');
-  if (CFG.url) {
-    el.innerHTML = `<span style="color:var(--grn);font-weight:600">✓ Terhubung</span><br>${CFG.url.substring(0,35)}…`;
-  } else {
-    el.textContent = 'Belum dikonfigurasi';
+function openModal(id){
+  document.getElementById(id).classList.add('show');
+  if(id==='m-config'){
+    document.getElementById('cfg-url').value=CFG.url;
+    document.getElementById('cfg-folder').value=CFG.folder;
+    if(!activeSource) selectSource('drive');
   }
 }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
-// ════════════════════════════════════════════════════════════
+function updateSidebarFooter(){
+  const el=document.getElementById('sb-footer');
+  const lines=[
+    `<b>${allRecords.length}</b> sesi total`,
+    CFG.url?`<span style="color:var(--grn)">☁ Drive: ${CFG.url.substring(0,30)}…</span>`:'☁ Drive: belum config',
+    localSessions.length?`✏️ Manual: ${localSessions.length}`:null,
+    uploadedRecords.length?`📂 Upload: ${uploadedRecords.length}`:null,
+  ].filter(Boolean);
+  el.innerHTML=lines.join('<br>');
+}
+
+// ══════════════════════════════════════════════
 // TOAST
-// ════════════════════════════════════════════════════════════
-let toastTimer;
-function showToast(msg, type='ok') {
-  const el = document.getElementById('toast');
-  const icons = {ok:'✓',err:'✗',warn:'⚠'};
-  el.innerHTML = `<span>${icons[type]||'•'}</span> ${msg}`;
-  el.className = 'toast show ' + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+// ══════════════════════════════════════════════
+let _tt;
+function showToast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show '+type;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000);
 }
 
-// ════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // INIT
-// ════════════════════════════════════════════════════════════
-(function init() {
-  const today = new Date();
-  document.getElementById('inp-from').value = fmtDate(new Date(today.getFullYear(), today.getMonth(), 1));
-  document.getElementById('inp-to').value = fmtDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
-  setPeriod('daily');
-  updateSidebarCfgInfo();
-  if (localSessions.length) document.getElementById('manual-badge').style.display = 'inline';
+// ══════════════════════════════════════════════
+(function(){
+  // Set default monthly range
+  const t=new Date();
+  document.getElementById('inp-from').value=fmt(new Date(t.getFullYear(),t.getMonth(),1));
+  document.getElementById('inp-to').value=fmt(new Date(t.getFullYear(),t.getMonth()+1,0));
 
-  // Close modal on overlay click
-  document.getElementById('modal-config').onclick = e => {
-    if (e.target.classList.contains('overlay')) closeModal('modal-config');
-  };
+  // Close modal on backdrop
+  ['m-config'].forEach(id=>{
+    document.getElementById(id).addEventListener('click',function(e){
+      if(e.target===this) closeModal(id);
+    });
+  });
+
+  if(localSessions.length){
+    document.getElementById('badge-manual').style.display='inline';
+    mergeAll();
+  }
+  updateSidebarFooter();
 
   // Auto-refresh 5 min
-  setInterval(() => { if (allRecords.length && CFG.url) fetchAndRender(); }, 5*60*1000);
+  setInterval(()=>{ if(CFG.url && driveRecords.length) refreshData(); }, 5*60*1000);
 
-  // Load if URL configured
-  if (CFG.url) setTimeout(fetchAndRender, 400);
+  // If URL configured, try to load
+  if(CFG.url){
+    setTimeout(refreshData, 500);
+  }
 })();
 </script>
 </body>
