@@ -227,6 +227,12 @@ select.fi{cursor:pointer;}
 .pbar-bg{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;flex:1;min-width:60px;}
 .pbar-fill{height:100%;border-radius:3px;transition:width .3s;}
 
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);box-shadow:var(--sh);}
+.filter-bar label{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+.filter-bar select{height:28px;padding:0 8px;border:1px solid var(--bdr);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--tx);}
+.filter-bar .sep{color:var(--bdr2);font-size:16px;}
+
 /* ── GAS CODE BLOCK ── */
 .code-blk{background:#1e1e2e;color:#cdd6f4;border-radius:var(--r);padding:12px;font-family:var(--mono);font-size:10.5px;line-height:1.7;overflow-x:auto;white-space:pre;margin:8px 0;}
 </style>
@@ -407,6 +413,21 @@ function readFile(fileId) {
 
 <div class="toast" id="toast"></div>
 
+<!-- MODAL: EDIT SESI -->
+<div class="ov" id="m-edit">
+  <div class="modal" style="max-width:480px">
+    <div class="mh"><span>✏️ Edit Sesi</span><button class="mc" onclick="closeModal('m-edit')">✕</button></div>
+    <div class="mb">
+      <div class="banner ban-info" style="margin-bottom:14px">ℹ️ Hanya sesi <b>Manual</b> yang dapat diedit. Sesi Drive/Upload bersifat read-only.</div>
+      <div id="edit-form-body"></div>
+      <div class="m-acts">
+        <button class="btn btn-p" onclick="saveEdit()">✓ Simpan Perubahan</button>
+        <button class="btn" onclick="closeModal('m-edit')">Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 // CONSTANTS
@@ -447,6 +468,8 @@ let uploadedRecords = [];                                              // from u
 let localSessions = JSON.parse(localStorage.getItem('wh_manual')||'[]'); // manual input
 let allRecords    = [];                                                // merged view
 let charts        = {};
+let currentVariantFilter = 'all';  // filter varian di view Waste
+let editIdx       = -1;            // index sesi manual yang sedang diedit
 let currentView   = 'overview';
 let currentPeriod = 'daily';
 let uploadedFiles = [];
@@ -817,9 +840,14 @@ function renderOverview(recs){
     (r.entries||[]).forEach(e=>{if(!lm[e.line])lm[e.line]={out:0,w:0}; lm[e.line].w+=totalWaste(e.waste||{});});
   });
 
-  // Shift
-  const sm={'1':{w:0},'2':{w:0},'3':{w:0}};
-  recs.forEach(r=>{const s=r.header?.shift||'1'; if(!sm[s])sm[s]={w:0}; (r.entries||[]).forEach(e=>{sm[s].w+=totalWaste(e.waste||{});});});
+  // Grup
+  const gm={'A':{w:0,out:0},'B':{w:0,out:0},'C':{w:0,out:0}};
+  recs.forEach(r=>{
+    const g=r.header?.group||'A';
+    if(!gm[g])gm[g]={w:0,out:0};
+    Object.keys(r.lineShared||{}).forEach(l=>{gm[g].out+=lineOutput(r.lineShared,l);});
+    (r.entries||[]).forEach(e=>{gm[g].w+=totalWaste(e.waste||{});});
+  });
 
   const localCount=localSessions.filter(r=>{const d=r.header?.date||'',f=document.getElementById('inp-from').value,t=document.getElementById('inp-to').value;return(!f||d>=f)&&(!t||d<=t);}).length;
 
@@ -849,17 +877,17 @@ function renderOverview(recs){
       <div class="card"><div class="card-h"><div class="card-title">📉 % Waste Trend</div><div class="card-meta">Target ≤ 2%</div></div><div class="card-b tall"><canvas id="ch-pct"></canvas></div></div>
     </div>
     <div class="g3">
-      <div class="card"><div class="card-h"><div class="card-title">🔄 Distribusi per Shift</div></div><div class="card-b"><canvas id="ch-shift"></canvas></div></div>
+      <div class="card"><div class="card-h"><div class="card-title">👥 Distribusi per Grup</div></div><div class="card-b"><canvas id="ch-grp"></canvas></div></div>
       <div class="card"><div class="card-h"><div class="card-title">🏭 Waste per Line</div></div><div class="card-b"><canvas id="ch-line"></canvas></div></div>
       <div class="card"><div class="card-h"><div class="card-title">⚠️ GF Total Trend</div></div><div class="card-b"><canvas id="ch-gft"></canvas></div></div>
     </div>
     ${tblLine(lm)}
-    ${tblShift(recs)}
+    ${tblGrup(recs)}
   `;
 
   buildTrend('ch-trend',labs,outD,wasD);
   buildPct('ch-pct',labs,pctD);
-  buildDonut('ch-shift',['Shift 1','Shift 2','Shift 3'],[sm['1']?.w||0,sm['2']?.w||0,sm['3']?.w||0]);
+  buildGroupBar('ch-grp',gm);
   buildBar('ch-line',Object.keys(lm),Object.values(lm).map(d=>d.w));
   buildLine('ch-gft',labs,keys.map(k=>{const a=agg(byP[k]);return a.gfc+a.gfo;}),'#d97706','GF Total');
 }
@@ -877,32 +905,122 @@ function kpiCard(label,valCls,barColor,val,sub,d){
 // ══════════════════════════════════════════════
 // WASTE VIEW
 // ══════════════════════════════════════════════
+function getVariantsFromRecs(recs){
+  const vs=new Set();
+  recs.forEach(r=>Object.values(r.lineShared||{}).forEach(sh=>{
+    Object.keys(sh.outputByVariant||{}).forEach(v=>vs.add(v));
+  }));
+  return [...vs].sort();
+}
+
+function filterRecsByVariant(recs, vf){
+  if(!vf||vf==='all') return recs;
+  return recs.map(r=>{
+    // hanya sertakan entries dari line yang punya varian ini
+    const linesWithVariant=Object.entries(r.lineShared||{})
+      .filter(([,sh])=>sh.outputByVariant?.[vf]!==undefined)
+      .map(([l])=>l);
+    if(!linesWithVariant.length) return null;
+    return {
+      ...r,
+      lineShared: Object.fromEntries(linesWithVariant.map(l=>[l,r.lineShared[l]])),
+      entries: (r.entries||[]).filter(e=>linesWithVariant.includes(e.line))
+    };
+  }).filter(Boolean);
+}
+
 function renderWaste(recs){
-  const a=agg(recs);
+  const allVariants=getVariantsFromRecs(recs);
+  const filtered=filterRecsByVariant(recs, currentVariantFilter);
+
+  const a=agg(filtered);
   const sorted=WT.map(t=>({t,v:a.wbt[t]||0})).sort((x,y)=>y.v-x.v);
   const mm={};
-  recs.forEach(r=>(r.entries||[]).forEach(e=>{
+  filtered.forEach(r=>(r.entries||[]).forEach(e=>{
     if(!mm[e.machine])mm[e.machine]={line:e.line,w:0,n:0};
     mm[e.machine].w+=totalWaste(e.waste||{}); mm[e.machine].n++;
   }));
 
+  // Waste per varian (output vs waste per varian)
+  const vm={};
+  recs.forEach(r=>{
+    Object.entries(r.lineShared||{}).forEach(([line,sh])=>{
+      Object.entries(sh.outputByVariant||{}).forEach(([v,boxes])=>{
+        if(!vm[v])vm[v]={out:0,w:0};
+        vm[v].out+=ni(boxes)*ppb(v);
+        // waste dari entries line ini
+        (r.entries||[]).filter(e=>e.line===line).forEach(e=>{vm[v].w+=totalWaste(e.waste||{});});
+      });
+    });
+  });
+
+  const varOpts=`<option value="all">Semua Varian</option>`+allVariants.map(v=>`<option value="${v}" ${currentVariantFilter===v?'selected':''}>${v}</option>`).join('');
+
   document.getElementById('content').innerHTML=`
     <div class="ph"><div class="ph-left"><div class="title">Waste Pouch Analysis</div><div class="sub">${recs.length} sesi</div></div></div>
+
+    <div class="filter-bar">
+      <label>🔍 Filter Varian:</label>
+      <select onchange="currentVariantFilter=this.value;renderWaste(allRecords.filter(r=>{const d=r.header?.date||'',f=document.getElementById('inp-from').value,t=document.getElementById('inp-to').value;return(!f||d>=f)&&(!t||d<=t);}))">
+        ${varOpts}
+      </select>
+      ${currentVariantFilter!=='all'?`<span class="badge b-acc" style="background:var(--acc-l);color:var(--acc);border:1px solid var(--acc-m)">Menampilkan: ${currentVariantFilter}</span>`:''}
+    </div>
+
     <div class="kpi-row c4">
       ${kpiCard('Total Waste','c-red','var(--red)',a.waste.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
       ${kpiCard('% Waste',pctCls(a.pct),'var(--warn)',a.pct+'%','dari '+a.out.toLocaleString()+' pcs',{v:'—',cls:'neu'})}
       ${kpiCard('Jenis Terbanyak','','var(--pur)',sorted[0]?.t.substring(0,18)||'—',(sorted[0]?.v||0).toLocaleString()+' pcs',{v:'—',cls:'neu'})}
       ${kpiCard('Mesin Tercatat','c-blue','var(--acc)',Object.keys(mm).length,'mesin',{v:'—',cls:'neu'})}
     </div>
+
     <div class="g2e">
       <div class="card"><div class="card-h"><div class="card-title">📊 Breakdown Jenis Waste</div></div><div class="card-b tall"><canvas id="ch-wt"></canvas></div></div>
-      <div class="card"><div class="card-h"><div class="card-title">🥧 Proporsi</div></div><div class="card-b tall"><canvas id="ch-wp"></canvas></div></div>
+      <div class="card"><div class="card-h"><div class="card-title">🥧 Proporsi Jenis</div></div><div class="card-b tall"><canvas id="ch-wp"></canvas></div></div>
     </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-h">
+        <div class="card-title">📦 Waste &amp; Output per Varian</div>
+        <div class="card-meta">${Object.keys(vm).length} varian</div>
+      </div>
+      <div class="card-b tall"><canvas id="ch-wvar"></canvas></div>
+    </div>
+
+    ${tblVariant(vm)}
     ${tblWasteType(sorted)}
     ${tblMachine(mm)}
   `;
   buildHBar('ch-wt',sorted.map(s=>s.t.length>26?s.t.substring(0,26)+'…':s.t),sorted.map(s=>s.v));
   buildPie('ch-wp',sorted.filter(s=>s.v>0).map(s=>s.t.substring(0,20)),sorted.filter(s=>s.v>0).map(s=>s.v));
+  buildVariantChart('ch-wvar',vm);
+}
+
+function tblVariant(vm){
+  const rows=Object.entries(vm).sort((a,b)=>b[1].w-a[1].w).map(([v,d])=>{
+    const pct=d.out>0?(d.w/d.out*100).toFixed(2):0;
+    return `<tr>
+      <td><span class="badge b-pur">${v}</span></td>
+      <td class="r m">${d.out.toLocaleString()}</td>
+      <td class="r m">${d.w.toLocaleString()}</td>
+      <td>${pBadge(pct)}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:16px">—</td></tr>';
+  return `<div class="card"><div class="card-h"><div class="card-title">📦 Detail per Varian</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Varian</th><th style="text-align:right">Output (pcs)</th><th style="text-align:right">Waste (pcs)</th><th>% Waste</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
+function buildVariantChart(id,vm){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const labels=Object.keys(vm);
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[
+    {label:'Output',data:labels.map(v=>vm[v].out),backgroundColor:'#2563eb33',borderColor:'#2563eb',borderWidth:1.5,yAxisID:'y',order:2},
+    {label:'Waste', data:labels.map(v=>vm[v].w), type:'line',borderColor:'#dc2626',backgroundColor:'#dc262618',borderWidth:2,pointRadius:5,tension:.3,fill:true,yAxisID:'y2',order:1}
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
+    scales:{y:{position:'left',ticks:{font:{size:10}},grid:{color:'#f0f2f5'},title:{display:true,text:'Output (pcs)',font:{size:10}}},
+            y2:{position:'right',ticks:{font:{size:10},color:'#dc2626'},grid:{display:false},title:{display:true,text:'Waste (pcs)',font:{size:10},color:'#dc2626'}},
+            x:{ticks:{font:{size:11}},grid:{color:'#f0f2f5'}}}}});
 }
 
 // ══════════════════════════════════════════════
@@ -1059,6 +1177,20 @@ function buildKardus(id,km){
       scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
 }
 
+function buildGroupBar(id,gm){
+  destroyChart(id);
+  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const grps=Object.keys(gm);
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:grps.map(g=>'Grup '+g),datasets:[
+    {label:'Output',data:grps.map(g=>gm[g].out),backgroundColor:'#2563eb33',borderColor:'#2563eb',borderWidth:1.5,yAxisID:'y',order:2},
+    {label:'Waste', data:grps.map(g=>gm[g].w), type:'line',borderColor:'#dc2626',backgroundColor:'#dc262618',borderWidth:2,pointRadius:5,tension:.3,fill:true,yAxisID:'y2',order:1}
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
+    scales:{y:{position:'left',ticks:{font:{size:10}},grid:{color:'#f0f2f5'},title:{display:true,text:'Output (pcs)',font:{size:10}}},
+            y2:{position:'right',ticks:{font:{size:10},color:'#dc2626'},grid:{display:false},title:{display:true,text:'Waste (pcs)',font:{size:10},color:'#dc2626'}},
+            x:{ticks:{font:{size:11}},grid:{color:'#f0f2f5'}}}}});
+}
+
 // ══════════════════════════════════════════════
 // TABLE RENDERERS
 // ══════════════════════════════════════════════
@@ -1070,12 +1202,12 @@ function tblLine(lm){
   return `<div class="card"><div class="card-h"><div class="card-title">🏭 Performa per Line</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Line</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-function tblShift(recs){
-  const rows=['1','2','3'].map(s=>{
-    const r=recs.filter(x=>x.header?.shift===s), a=agg(r);
-    return `<tr><td><span class="badge b-blue">Shift ${s}</span></td><td class="r m">${r.length}</td><td class="r m">${a.out.toLocaleString()}</td><td class="r m">${a.waste.toLocaleString()}</td><td>${pBadge(a.pct)}</td><td class="r m">${(a.gfc+a.gfo).toLocaleString()}</td></tr>`;
+function tblGrup(recs){
+  const rows=['A','B','C'].map(g=>{
+    const r=recs.filter(x=>x.header?.group===g), a=agg(r);
+    return `<tr><td><span class="badge b-pur">Grup ${g}</span></td><td class="r m">${r.length}</td><td class="r m">${a.out.toLocaleString()}</td><td class="r m">${a.waste.toLocaleString()}</td><td>${pBadge(a.pct)}</td><td class="r m">${(a.gfc+a.gfo).toLocaleString()}</td></tr>`;
   }).join('');
-  return `<div class="card"><div class="card-h"><div class="card-title">🕐 per Shift</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Shift</th><th style="text-align:right">Sesi</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  return `<div class="card"><div class="card-h"><div class="card-title">👥 Performa per Grup</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Grup</th><th style="text-align:right">Sesi</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
 function tblWasteType(sorted){
@@ -1249,7 +1381,7 @@ function renderMILines(){
 }
 
 function saveMI(){
-  const s={savedAt:new Date().toISOString(),isManual:true,header:{...MI.header},lineShared:JSON.parse(JSON.stringify(MI.ls)),entries:JSON.parse(JSON.stringify(MI.entries)),gf:JSON.parse(JSON.stringify(MI.gf)),kardus:JSON.parse(JSON.stringify(MI.kardus))};
+  const s={savedAt:new Date().toISOString(),isManual:true,label:'',header:{...MI.header},lineShared:JSON.parse(JSON.stringify(MI.ls)),entries:JSON.parse(JSON.stringify(MI.entries)),gf:JSON.parse(JSON.stringify(MI.gf)),kardus:JSON.parse(JSON.stringify(MI.kardus))};
   const dup=localSessions.findIndex(x=>x.header.group===s.header.group&&x.header.date===s.header.date&&x.header.shift===s.header.shift);
   if(dup>=0){
     if(!confirm(`Sesi Grup ${s.header.group} Shift ${s.header.shift} tgl ${s.header.date} sudah ada. Timpa?`)) return;
@@ -1270,40 +1402,117 @@ function resetMI(){
 // ══════════════════════════════════════════════
 // SESSIONS VIEW
 // ══════════════════════════════════════════════
+function sessionLabel(s){
+  // Buat nama sesi yang informatif
+  const d=s.header?.date||'—';
+  const g=s.header?.group||'—';
+  const sh=s.header?.shift||'—';
+  const lines=Object.keys(s.lineShared||{}).join(',');
+  return `${d} · Grp ${g} · Sft ${sh}${lines?' · '+lines:''}`;
+}
+
 function renderSessions(){
-  const all=[
-    ...localSessions.map(s=>({...s,_src:'manual'})),
-    ...uploadedRecords.map(s=>({...s,_src:'upload'})),
-    ...driveRecords.map(s=>({...s,_src:'drive'}))
+  const allRaw=[
+    ...localSessions.map((s,i)=>({...s,_src:'manual',_idx:i})),
+    ...uploadedRecords.map((s,i)=>({...s,_src:'upload',_idx:i})),
+    ...driveRecords.map((s,i)=>({...s,_src:'drive',_idx:i}))
   ].sort((a,b)=>(b.header?.date||'')>(a.header?.date||'')?1:-1);
 
-  const rows=all.map((s,i)=>{
+  const rows=allRaw.map((s)=>{
     const a=agg([s]);
     const srcBadge={manual:'b-warn',upload:'b-pur',drive:'b-blue'}[s._src];
     const srcLabel={manual:'Manual',upload:'Upload',drive:'Drive'}[s._src];
-    const isDeletable=s._src==='manual';
+    const isManual=s._src==='manual';
+    const lbl=sessionLabel(s);
+    const lines=Object.keys(s.lineShared||{});
+    const linesBadge=lines.map(l=>`<span class="badge b-gray" style="margin-right:2px">${l}</span>`).join('');
+    const aktsi=isManual
+      ? `<div style="display:flex;gap:4px">
+           <button class="btn btn-xs" onclick="openEditSession(${s._idx})" title="Edit sesi">✏️</button>
+           <button class="btn btn-xs btn-r" onclick="delLocal(${s._idx})" title="Hapus sesi">🗑</button>
+         </div>`
+      : `<button class="btn btn-xs btn-r" onclick="delNonLocal('${s._src}',${s._idx})" title="Hapus dari tampilan">🗑</button>`;
     return `<tr>
       <td><span class="badge ${srcBadge}">${srcLabel}</span></td>
-      <td class="m">${s.header?.date||'—'}</td>
+      <td style="font-size:11px;font-family:var(--mono);white-space:nowrap">${s.header?.date||'—'}</td>
       <td><span class="badge b-gray">Grp ${s.header?.group||'—'}</span></td>
       <td><span class="badge b-gray">Sft ${s.header?.shift||'—'}</span></td>
+      <td style="font-size:11px;max-width:180px">${linesBadge||'—'}</td>
       <td class="r m">${a.out.toLocaleString()}</td>
       <td class="r m">${a.waste.toLocaleString()}</td>
       <td>${pBadge(a.pct)}</td>
       <td class="r m">${(a.gfc+a.gfo).toLocaleString()}</td>
-      <td>${isDeletable?`<button class="btn btn-xs btn-r" onclick="delLocal(${localSessions.indexOf(s)})">Hapus</button>`:'—'}</td>
+      <td>${aktsi}</td>
     </tr>`;
-  }).join('')||'<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--tx3)">Belum ada sesi</td></tr>';
+  }).join('')||'<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--tx3)">Belum ada sesi</td></tr>';
 
   document.getElementById('content').innerHTML=`
     <div class="ph">
       <div class="ph-left"><div class="title">🗃️ Semua Sesi</div><div class="sub">${localSessions.length} manual · ${uploadedRecords.length} upload · ${driveRecords.length} Drive</div></div>
-      <div class="ph-right">${localSessions.length?`<button class="btn btn-r btn-sm" onclick="clearLocal()">🗑 Hapus Semua Manual</button>`:''}</div>
+      <div class="ph-right">
+        ${localSessions.length?`<button class="btn btn-r btn-sm" onclick="clearLocal()">🗑 Hapus Semua Manual</button>`:''}
+      </div>
     </div>
     <div class="card"><div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Sumber</th><th>Tanggal</th><th>Grup</th><th>Shift</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Sumber</th><th>Tanggal</th><th>Grup</th><th>Shift</th><th>Line</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th><th>Aksi</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div></div>`;
+}
+
+// Hapus sesi Drive/Upload dari tampilan (tidak permanen)
+function delNonLocal(src, idx){
+  if(!confirm('Hapus sesi ini dari tampilan? (Data asli di Drive/file tidak berubah)')) return;
+  if(src==='drive') driveRecords.splice(idx,1);
+  if(src==='upload') uploadedRecords.splice(idx,1);
+  mergeAll(); showToast('Sesi dihapus dari tampilan','warn'); renderSessions();
+}
+
+// ── EDIT MANUAL SESSION ──
+function openEditSession(idx){
+  editIdx=idx;
+  const s=localSessions[idx];
+  if(!s){ showToast('Sesi tidak ditemukan','err'); return; }
+  const body=document.getElementById('edit-form-body');
+  body.innerHTML=`
+    <div class="fg"><label class="fl">Nama / Label Sesi</label>
+      <input class="fi" id="ed-label" value="${s.label||''}" placeholder="Opsional — misal: Sesi Pagi Grup A"/>
+    </div>
+    <div class="fr">
+      <div class="fc"><label class="fl">Grup</label>
+        <select class="fi" id="ed-grp">
+          <option ${s.header?.group==='A'?'selected':''}>A</option>
+          <option ${s.header?.group==='B'?'selected':''}>B</option>
+          <option ${s.header?.group==='C'?'selected':''}>C</option>
+        </select>
+      </div>
+      <div class="fc"><label class="fl">Tanggal</label>
+        <input type="date" class="fi fi-mono" id="ed-date" value="${s.header?.date||''}"/>
+      </div>
+      <div class="fc"><label class="fl">Shift</label>
+        <select class="fi" id="ed-shift">
+          <option value="1" ${s.header?.shift==='1'?'selected':''}>Shift 1</option>
+          <option value="2" ${s.header?.shift==='2'?'selected':''}>Shift 2</option>
+          <option value="3" ${s.header?.shift==='3'?'selected':''}>Shift 3</option>
+        </select>
+      </div>
+    </div>
+    <div class="banner ban-warn" style="margin-top:4px">⚠️ Untuk edit data waste/output, hapus sesi ini dan buat ulang via Input Manual.</div>
+  `;
+  openModal('m-edit');
+}
+
+function saveEdit(){
+  if(editIdx<0||editIdx>=localSessions.length) return;
+  const s=localSessions[editIdx];
+  s.label=document.getElementById('ed-label').value.trim();
+  s.header.group=document.getElementById('ed-grp').value;
+  s.header.date=document.getElementById('ed-date').value;
+  s.header.shift=document.getElementById('ed-shift').value;
+  localStorage.setItem('wh_manual',JSON.stringify(localSessions));
+  mergeAll();
+  closeModal('m-edit');
+  showToast('✓ Sesi diperbarui','ok');
+  renderSessions();
 }
 
 function delLocal(idx){
@@ -1398,7 +1607,7 @@ function showToast(msg,type='ok'){
   document.getElementById('inp-to').value=fmt(new Date(t.getFullYear(),t.getMonth()+1,0));
 
   // Close modal on backdrop
-  ['m-config'].forEach(id=>{
+  ['m-config','m-edit'].forEach(id=>{
     document.getElementById(id).addEventListener('click',function(e){
       if(e.target===this) closeModal(id);
     });
