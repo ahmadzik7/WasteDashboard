@@ -328,7 +328,7 @@ select.fi{cursor:pointer;}
           <input class="fi fi-mono" id="cfg-folder" placeholder="1CzNjJIymT9cOfwDEV7oHESt80kDOR9iN"/>
         </div>
         <div style="margin-bottom:8px;font-size:10px;color:var(--tx2);font-weight:600">Tambahkan fungsi ini ke GAS (tanpa menghapus doPost yang lama):</div>
-        <div class="code-blk">// Tambahkan semua fungsi ini ke Apps Script (jangan hapus doPost yang lama)
+        <div class="code-blk">// Tambahkan semua fungsi ini ke Apps Script (jangan hapus doPost lama)
 
 function out(obj) {
   return ContentService
@@ -361,8 +361,7 @@ function listFiles(folderId) {
 function readFile(fileId) {
   try {
     const f = DriveApp.getFileById(fileId);
-    const text = f.getBlob().getDataAsString();
-    const data = JSON.parse(text);
+    const data = JSON.parse(f.getBlob().getDataAsString());
     return out({status:'ok', data: data});
   } catch(err) {
     return out({status:'error', msg: err.toString()});
@@ -462,8 +461,67 @@ Chart.defaults.font.family= "'Inter',sans-serif";
 // ══════════════════════════════════════════════
 // MERGE & HELPERS
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// NORMALIZE — map short keys → long keys
+// Handles both formats from WasteHub app
+// ══════════════════════════════════════════════
+function normalizeRecord(r) {
+  if (!r || typeof r !== 'object') return r;
+  const n = {...r};
+
+  // 1. header: {g,d,s} → {group,date,shift}
+  if (n.header) {
+    const h = {...n.header};
+    if (h.g !== undefined && h.group === undefined) h.group = h.g;
+    if (h.d !== undefined && h.date  === undefined) h.date  = h.d;
+    if (h.s !== undefined && h.shift === undefined) h.shift = String(h.s);
+    n.header = h;
+  }
+
+  // 2. entries[].w → entries[].waste
+  if (Array.isArray(n.entries)) {
+    n.entries = n.entries.map(e => {
+      if (!e) return e;
+      const ne = {...e};
+      if (ne.w !== undefined && ne.waste === undefined) ne.waste = ne.w;
+      return ne;
+    });
+  }
+
+  // 3. lineShared[line].obv → lineShared[line].outputByVariant
+  if (n.lineShared && typeof n.lineShared === 'object') {
+    const ls = {};
+    Object.entries(n.lineShared).forEach(([line, sh]) => {
+      if (!sh) { ls[line] = sh; return; }
+      const nsh = {...sh};
+      if (nsh.obv !== undefined && nsh.outputByVariant === undefined)
+        nsh.outputByVariant = nsh.obv;
+      ls[line] = nsh;
+    });
+    n.lineShared = ls;
+  }
+
+  // 4. kardus[id].tot → kardus[id].total
+  if (n.kardus && typeof n.kardus === 'object') {
+    const kd = {};
+    Object.entries(n.kardus).forEach(([kid, kv]) => {
+      if (!kv) { kd[kid] = kv; return; }
+      const nkv = {...kv};
+      if (nkv.tot !== undefined && nkv.total === undefined) nkv.total = nkv.tot;
+      kd[kid] = nkv;
+    });
+    n.kardus = kd;
+  }
+
+  return n;
+}
+
 function mergeAll() {
-  allRecords = [...driveRecords, ...uploadedRecords, ...localSessions];
+  allRecords = [
+    ...driveRecords.map(normalizeRecord),
+    ...uploadedRecords.map(normalizeRecord),
+    ...localSessions.map(normalizeRecord)
+  ];
   updateSidebarFooter();
 }
 const ni   = v => parseInt(v)||0;
@@ -616,7 +674,7 @@ async function refreshData() {
     mergeAll();
     document.getElementById('sync-lbl').textContent=new Date().toLocaleTimeString('id-ID');
     if(loaded===0 && json.files.length>0){
-      showToast(`⚠ ${json.files.length} file ditemukan tapi 0 berhasil dibaca. Cek format JSON & redeploy GAS.`,'warn');
+      showToast(`⚠ ${json.files.length} file ditemukan tapi 0 terbaca. Cek format JSON & redeploy GAS.`,'warn');
     } else {
       showToast(`✓ ${loaded} sesi dimuat dari Drive`,'ok');
     }
