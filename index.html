@@ -2,405 +2,439 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>WasteHub Analytics</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0d1117"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="WasteHub"/>
+<title>WasteHub</title>
+<!-- Inline manifest via blob — no external file needed -->
+<script>
+(function(){
+  const manifest={
+    name:"WasteHub — Production Monitoring",
+    short_name:"WasteHub",
+    description:"Input data waste produksi pershift",
+    start_url:"./",
+    display:"standalone",
+    background_color:"#0d1117",
+    theme_color:"#0d1117",
+    orientation:"portrait-primary",
+    icons:[
+      {src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%230d1117'/><text x='96' y='130' font-size='110' text-anchor='middle' fill='%2358a6ff'>◈</text></svg>",sizes:"192x192",type:"image/svg+xml"},
+      {src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='64' fill='%230d1117'/><text x='256' y='350' font-size='300' text-anchor='middle' fill='%2358a6ff'>◈</text></svg>",sizes:"512x512",type:"image/svg+xml"}
+    ]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement("link");
+  link.rel="manifest";link.href=url;
+  document.head.appendChild(link);
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#f4f6f9;--surface:#fff;--s2:#f8f9fb;--s3:#f0f2f5;
-  --bdr:#e2e6ea;--bdr2:#cdd1d9;
-  --acc:#2563eb;--acc-l:#eff6ff;--acc-m:#bfdbfe;
-  --grn:#16a34a;--grn-l:#f0fdf4;
-  --warn:#d97706;--warn-l:#fffbeb;
-  --red:#dc2626;--red-l:#fef2f2;
-  --pur:#7c3aed;--pur-l:#f5f3ff;
-  --tx:#111827;--tx2:#6b7280;--tx3:#9ca3af;
-  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
-  --r:8px;--r2:12px;
-  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
-  --sh2:0 4px 16px rgba(0,0,0,.1);
-  --sb:220px;--tb:54px;
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
+  --bdr:#30363d;--acc:#58a6ff;--grn:#3fb950;--warn:#f0883e;--red:#f85149;
+  --tx:#e6edf3;--tx2:#8b949e;--tx3:#6e7681;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;--r:8px;
 }
 html,body{height:100%;}
-body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px;display:flex;flex-direction:column;}
-input,select,button,textarea{font-family:var(--font);}
-button{cursor:pointer;}
+body{background:var(--bg);color:var(--tx);font-family:var(--font);font-size:14px;}
+input,select,button{font-family:var(--font);}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{opacity:.5;}
+b{font-weight:700;}
 
-/* ── TOPBAR ── */
-.topbar{
-  position:fixed;top:0;left:0;right:0;height:var(--tb);z-index:300;
-  background:var(--surface);border-bottom:1px solid var(--bdr);
-  display:flex;align-items:center;padding:0 16px;gap:12px;box-shadow:var(--sh);
-}
-.logo{display:flex;align-items:center;gap:9px;width:var(--sb);flex-shrink:0;}
-.logo-box{width:32px;height:32px;background:var(--acc);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;letter-spacing:-1px;flex-shrink:0;}
-.logo-name{font-size:15px;font-weight:700;color:var(--tx);}
-.logo-name em{color:var(--acc);font-style:normal;}
-.logo-sub{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;}
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:9px 16px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100;}
+.brand{display:flex;align-items:center;gap:9px;}
+.brand-icon{font-size:20px;color:var(--acc);}
+.brand-name{font-size:15px;font-weight:600;}
+.brand-name span{color:var(--acc);}
+.brand-sub{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;}
+.tp-controls{display:flex;gap:12px;align-items:center;flex:1;flex-wrap:wrap;}
+.ctrl{display:flex;align-items:center;gap:6px;}
+.ctrl-lbl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.pills{display:flex;gap:3px;}
+.pill{padding:4px 10px;border-radius:20px;border:1px solid var(--bdr);background:var(--bg3);
+  color:var(--tx2);cursor:pointer;font-family:var(--mono);font-size:12px;transition:all .12s;}
+.pill.on{background:var(--acc);border-color:var(--acc);color:#000;font-weight:700;}
+.pill.son{background:#1c2d42;border-color:var(--acc);color:var(--acc);font-weight:700;}
+.shift-time{font-size:10px;color:var(--tx3);font-family:var(--mono);}
+.date-inp{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);
+  padding:5px 7px;border-radius:var(--r);font-family:var(--mono);font-size:12px;}
+.date-inp:focus{outline:none;border-color:var(--acc);}
+.tp-stats{display:flex;gap:12px;}
+.stat{text-align:right;}
+.stat-l{display:block;font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;}
+.stat-v{font-family:var(--mono);font-size:13px;font-weight:600;}
+.tp-btns{display:flex;gap:5px;align-items:center;}
+.btn-icon{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx2);
+  width:32px;height:32px;border-radius:var(--r);cursor:pointer;font-size:14px;transition:all .12s;}
+.btn-icon:hover{border-color:var(--acc);color:var(--acc);}
+/* autosave dot */
+.save-indicator{display:flex;align-items:center;gap:5px;}
+.save-dot{width:7px;height:7px;border-radius:50%;background:var(--grn);transition:all .3s;}
+.save-dot.saving{background:var(--warn);animation:blink .6s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.save-txt{font-size:10px;color:var(--tx3);font-family:var(--mono);white-space:nowrap;}
+.btn-drive{background:#1c3a5e;border:1px solid var(--acc);color:var(--acc);
+  padding:6px 12px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;}
+.btn-drive:hover{background:#1c2d42;}
+.btn-drive.sending{opacity:.6;cursor:not-allowed;}
+.btn-reset{background:transparent;border:1px solid var(--red);color:var(--red);
+  padding:6px 10px;border-radius:var(--r);font-size:12px;cursor:pointer;transition:all .12s;}
+.btn-reset:hover{background:#2d1619;}
+.btn-xlsx{background:var(--grn);color:#000;border:none;padding:6px 13px;
+  border-radius:var(--r);font-weight:700;cursor:pointer;font-size:12px;}
+.btn-xlsx:disabled{opacity:.4;cursor:not-allowed;}
 
-.tb-center{flex:1;display:flex;align-items:center;gap:10px;min-width:0;}
-.period-group{display:flex;background:var(--s3);border:1px solid var(--bdr);border-radius:var(--r);padding:3px;gap:2px;flex-shrink:0;}
-.pg-btn{padding:4px 13px;border:none;background:none;color:var(--tx2);font-size:12px;font-weight:500;border-radius:5px;transition:all .12s;white-space:nowrap;}
-.pg-btn.on{background:var(--surface);color:var(--acc);font-weight:600;box-shadow:var(--sh);}
-.pg-btn:hover:not(.on){color:var(--tx);}
+/* Install banner */
+.install-bar{background:#1c2d42;border-bottom:1px solid var(--acc);padding:8px 16px;
+  display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.install-bar.show{display:flex;}
+.install-bar-txt{font-size:12px;color:var(--tx);}
+.install-bar-txt strong{color:var(--acc);}
+.btn-install{background:var(--acc);color:#000;border:none;padding:5px 14px;
+  border-radius:var(--r);font-weight:700;cursor:pointer;font-size:12px;}
+.btn-install-dismiss{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:16px;padding:2px 6px;}
 
-.dr{display:flex;align-items:center;gap:5px;}
-.di{height:28px;background:var(--surface);border:1px solid var(--bdr);color:var(--tx);
-  padding:0 8px;border-radius:var(--r);font-family:var(--mono);font-size:11px;}
-.di:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-l);}
-.sep{color:var(--tx3);font-size:11px;}
+/* LINE BAR */
+.line-bar{background:var(--bg2);border-bottom:2px solid var(--bdr);padding:8px 16px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:54px;z-index:99;}
+.lb-lbl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.line-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.lp{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;
+  border:1px solid var(--bdr);background:var(--bg3);color:var(--tx2);cursor:pointer;
+  font-family:var(--mono);font-size:13px;font-weight:600;transition:all .12s;}
+.lp:hover{border-color:var(--acc);color:var(--tx);}
+.lp.on{background:#1c2d42;border-color:var(--acc);color:var(--acc);}
+.lp-cnt{font-size:10px;background:var(--acc);color:#000;padding:1px 5px;border-radius:10px;font-weight:700;}
+.machine-pills{display:flex;gap:6px;flex-wrap:wrap;border-left:2px solid var(--bdr);padding-left:10px;}
+.mpg{display:flex;align-items:center;gap:3px;}
+.mpg-lbl{font-size:10px;color:var(--acc);font-family:var(--mono);font-weight:700;margin-right:2px;}
+.mp{padding:3px 8px;border-radius:12px;border:1px solid var(--bdr);background:var(--bg3);
+  color:var(--tx3);cursor:pointer;font-family:var(--mono);font-size:11px;transition:all .1s;}
+.mp:hover{border-color:var(--warn);color:var(--warn);}
+.mp.on{background:#1c2d42;border-color:var(--acc);color:var(--acc);}
 
-.tb-right{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0;}
-.live-pill{display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--grn-l);border:1px solid #bbf7d0;border-radius:20px;}
-.ld{width:6px;height:6px;border-radius:50%;background:var(--grn);animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
-.live-lbl{font-size:10px;font-weight:600;color:var(--grn);}
-.sync-lbl{font-size:10px;color:var(--tx3);font-family:var(--mono);}
+/* TABNAV */
+.tabnav{background:var(--bg2);border-bottom:1px solid var(--bdr);
+  display:flex;padding:0 16px;overflow-x:auto;scrollbar-width:none;}
+.tabnav::-webkit-scrollbar{display:none;}
+.tab{padding:9px 14px;border:none;background:none;color:var(--tx2);cursor:pointer;
+  font-size:13px;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all .12s;white-space:nowrap;}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc);}
+.tab:hover{color:var(--tx);}
 
-/* buttons */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:0 12px;height:30px;border-radius:var(--r);border:1px solid var(--bdr);background:var(--surface);color:var(--tx2);font-size:12px;font-weight:500;transition:all .12s;white-space:nowrap;}
-.btn:hover{border-color:var(--acc);color:var(--acc);}
-.btn-p{background:var(--acc);color:#fff;border-color:var(--acc);}
-.btn-p:hover{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}
-.btn-g{background:var(--grn);color:#fff;border-color:var(--grn);}
-.btn-g:hover{background:#15803d;color:#fff;border-color:#15803d;}
-.btn-r{background:var(--red);color:#fff;border-color:var(--red);}
-.btn-r:hover{background:#b91c1c;color:#fff;}
-.btn-xs{height:24px;padding:0 8px;font-size:11px;}
-.btn-sm{height:28px;padding:0 10px;font-size:11px;}
-.btn:disabled{opacity:.4;pointer-events:none;}
+/* MAIN */
+#main{padding:14px;max-width:1400px;width:100%;margin:0 auto;}
 
-/* ── SIDEBAR ── */
-.sidebar{
-  position:fixed;top:var(--tb);left:0;bottom:0;width:var(--sb);z-index:200;
-  background:var(--surface);border-right:1px solid var(--bdr);
-  display:flex;flex-direction:column;overflow-y:auto;
-}
-.sb-sec{padding:14px 12px 4px;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;}
-.nav{display:flex;flex-direction:column;gap:1px;padding:0 8px;}
-.ni{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;border:none;
-  background:none;color:var(--tx2);font-size:13px;font-weight:500;text-align:left;width:100%;transition:all .1s;}
-.ni:hover{background:var(--s3);color:var(--tx);}
-.ni.on{background:var(--acc-l);color:var(--acc);font-weight:600;}
-.ni-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
-.ni-badge{margin-left:auto;background:var(--warn);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;}
+/* CARDS */
+.card{border:1px solid var(--bdr);border-radius:10px;overflow:hidden;background:var(--bg2);margin-bottom:10px;}
+.card-head{background:var(--bg3);padding:9px 13px;display:flex;align-items:center;
+  justify-content:space-between;cursor:pointer;user-select:none;
+  transition:background .1s;flex-wrap:wrap;gap:8px;}
+.card-head:hover{background:var(--bg4);}
+.card-head.open{border-left:3px solid var(--acc);}
+.card-body{display:none;border-top:1px solid var(--bdr);}
+.card-body.open{display:block;}
+.caret{color:var(--tx3);font-size:11px;flex-shrink:0;}
+.chl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.chr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 
-.sb-footer{margin-top:auto;padding:10px 12px;border-top:1px solid var(--bdr);font-size:10px;color:var(--tx3);line-height:1.6;}
-.sb-footer a{color:var(--acc);text-decoration:none;}
+/* LSP */
+.lsp{background:#0f1923;padding:12px 13px;}
+.lsp-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.lsp-badge{background:#1c3a5e;border:1px solid var(--acc);color:var(--acc);
+  padding:2px 9px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:700;}
+.lsp-sub{font-size:10px;color:var(--tx3);}
+.lsp-pcs{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--grn);}
+.sec-lbl{font-size:10px;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;font-weight:600;}
+.field-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:11px;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;}
+.num-in{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);
+  padding:5px 7px;border-radius:5px;font-family:var(--mono);font-size:13px;width:100px;text-align:right;}
+.num-in:focus{outline:none;border-color:var(--acc);}
+.num-in-lg{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);
+  padding:7px 10px;border-radius:5px;font-family:var(--mono);font-size:15px;width:130px;text-align:right;}
+.num-in-lg:focus{outline:none;border-color:var(--acc);}
+.fixed-tag{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--grn);
+  padding:5px 9px;background:var(--bg3);border:1px solid var(--bdr);border-radius:5px;}
+.pcs-tag{font-family:var(--mono);font-size:11px;color:var(--grn);background:#1f2d1f;
+  border:1px solid var(--grn);padding:3px 7px;border-radius:4px;white-space:nowrap;}
+.vpills{display:flex;gap:4px;}
+.vp{padding:4px 12px;border-radius:20px;border:1px solid var(--bdr);background:var(--bg3);
+  color:var(--tx2);cursor:pointer;font-family:var(--mono);font-size:12px;transition:all .12s;}
+.vp.on{background:#1f2d1f;border-color:var(--grn);color:var(--grn);font-weight:700;}
 
-/* ── CONTENT ── */
-.content{margin-left:var(--sb);margin-top:var(--tb);padding:20px 22px;min-height:calc(100vh - var(--tb));min-width:0;}
+/* TAGS */
+.tag-m{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);
+  padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;font-weight:600;}
+.tag-v{background:#1f2d1f;border:1px solid var(--grn);color:var(--grn);
+  padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;}
+.tag-w{background:var(--bg3);color:var(--tx2);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;}
+.pct-pill{padding:3px 9px;border-radius:20px;font-family:var(--mono);font-size:12px;font-weight:700;}
+.st-ok{background:#1f2d1f;color:var(--grn);border:1px solid var(--grn);
+  padding:3px 9px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:700;}
+.st-ov{background:#2d1619;color:var(--red);border:1px solid var(--red);
+  padding:3px 9px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:700;}
 
-/* ── PAGE HEADER ── */
-.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
-.ph-left .title{font-size:18px;font-weight:700;}
-.ph-left .sub{font-size:11px;color:var(--tx2);margin-top:2px;}
-.ph-right{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+/* WASTE TABLE */
+.waste-body{padding:11px 13px;background:#101419;}
+.mtag{font-size:10px;color:var(--tx3);margin-bottom:5px;font-family:var(--mono);}
+.wt{border-collapse:collapse;width:100%;max-width:400px;font-size:13px;}
+.wt th{background:var(--bg3);color:var(--tx2);padding:6px 10px;text-align:left;
+  border:1px solid var(--bdr);font-weight:600;font-size:10px;text-transform:uppercase;}
+.wt .th-n{min-width:200px;}
+.wt .th-t{min-width:100px;text-align:center!important;background:#1c2a1c!important;color:var(--grn)!important;}
+.wt td{padding:3px 4px;border:1px solid var(--bdr);}
+.wt .td-n{padding:5px 10px!important;font-size:12px;white-space:nowrap;}
+.wt .td-v{background:#1c2a1c22;text-align:center;}
+.wt .ract td{background:rgba(63,185,80,.04);}
+.wt .ract .td-v{background:rgba(63,185,80,.1);}
+.wt tr:hover td{background:var(--bg4);}
+.wt .tfoot-r td{background:var(--bg3)!important;border-top:2px solid var(--bdr);}
+.tw-n{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--grn);display:block;text-align:center;padding:4px;}
+.wi{width:82px;padding:5px 7px;background:var(--bg3);border:1px solid transparent;
+  color:var(--tx);border-radius:4px;font-family:var(--mono);font-size:12px;
+  text-align:right;display:block;margin:auto;}
+.wi:focus{outline:none;border-color:var(--acc);background:var(--bg4);}
+.tw-sum{margin-top:8px;display:flex;justify-content:flex-end;align-items:center;gap:8px;font-size:12px;color:var(--tx2);}
+.hint{font-size:10px;color:var(--tx3);margin-top:6px;font-family:var(--mono);}
+.btn-del{background:none;border:1px solid transparent;color:var(--tx3);
+  width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:11px;}
+.btn-del:hover{border-color:var(--red);color:var(--red);background:#2d1619;}
 
-/* ── KPI STRIP ── */
-.kpi-row{display:grid;gap:10px;margin-bottom:16px;}
-.kpi-row.c6{grid-template-columns:repeat(6,1fr);}
-.kpi-row.c4{grid-template-columns:repeat(4,1fr);}
-.kpi-row.c3{grid-template-columns:repeat(3,1fr);}
-@media(max-width:1300px){.kpi-row.c6{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:900px){.kpi-row.c6,.kpi-row.c4{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:600px){.kpi-row.c6,.kpi-row.c4,.kpi-row.c3{grid-template-columns:1fr 1fr;}}
+/* COUNTER — clean layout */
+.ctr-body{background:#101419;overflow-x:auto;}
+.ct{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap;}
+.ct th{background:var(--bg3);color:var(--tx2);padding:6px 10px;
+  border:1px solid var(--bdr);text-align:center;font-weight:600;font-size:10px;text-transform:uppercase;}
+.ct th.th-in{background:#1c2a1c;color:var(--grn);}
+.ct td{padding:3px 5px;border:1px solid var(--bdr);text-align:center;}
+.ct .td-m{font-family:var(--mono);font-size:12px;}
+.ct .td-ro{font-family:var(--mono);font-size:12px;background:#1c2a1c22;color:var(--grn);}
+.ct .td-sel{font-family:var(--mono);font-size:12px;}
+.ct tr:hover td{background:var(--bg3);}
+.ct tr:hover .td-ro{background:rgba(63,185,80,.1);}
+.ct .tfoot-r td{background:var(--bg3)!important;border-top:2px solid var(--bdr);font-weight:700;}
+.ctr-hint{padding:6px 13px 10px;font-size:10px;color:var(--tx3);font-family:var(--mono);background:#101419;}
 
-.kc{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);padding:14px 15px;box-shadow:var(--sh);position:relative;overflow:hidden;}
-.kc-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:2px 2px 0 0;}
-.kc-label{font-size:9px;color:var(--tx2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
-.kc-val{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--tx);line-height:1.1;}
-.kc-val.c-blue{color:var(--acc);}
-.kc-val.c-red{color:var(--red);}
-.kc-val.c-grn{color:var(--grn);}
-.kc-val.c-warn{color:var(--warn);}
-.kc-delta{font-size:10px;margin-top:4px;font-family:var(--mono);}
-.kc-delta.up{color:var(--grn);}
-.kc-delta.dn{color:var(--red);}
-.kc-delta.neu{color:var(--tx3);}
-.kc-sub{font-size:10px;color:var(--tx3);margin-top:3px;}
+/* GF */
+.gf-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.kpi-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px;}
+.kpi{flex:1;min-width:110px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:12px 14px;}
+.kpi.hi{border-color:var(--acc);background:#1c2d42;}
+.kpi-v{font-family:var(--mono);font-size:19px;font-weight:700;}
+.kpi-l{font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;margin-top:3px;}
+.kpi-sm{text-align:center;background:var(--bg2);border:1px solid var(--bdr);padding:10px 16px;border-radius:var(--r);}
+.kpi-sm-v{font-family:var(--mono);font-size:18px;font-weight:700;}
+.kpi-sm-l{font-size:9px;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;margin-top:3px;}
+.gft{border-collapse:collapse;width:100%;max-width:520px;font-size:13px;}
+.gft th{background:var(--bg3);color:var(--tx2);padding:7px 12px;
+  border:1px solid var(--bdr);text-align:center;font-weight:600;font-size:10px;text-transform:uppercase;}
+.gft th:first-child{text-align:left;}
+.gft .th-cl{color:var(--grn)!important;}
+.gft .th-op{color:var(--warn)!important;}
+.gft td{padding:4px 8px;border:1px solid var(--bdr);text-align:center;}
+.gft td:first-child{text-align:left;}
+.gft tr:hover td{background:var(--bg3);}
+.gft .ract td{background:rgba(88,166,255,.04);}
+.gft .tfoot-r td{background:var(--bg3)!important;border-top:2px solid var(--bdr);}
 
-/* ── CHART GRIDS ── */
-.g2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
-.g2e{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-@media(max-width:1100px){.g2,.g2e{grid-template-columns:1fr;}}
-@media(max-width:900px){.g3{grid-template-columns:1fr 1fr;}}
-@media(max-width:600px){.g3{grid-template-columns:1fr;}}
+/* KARDUS */
+.ks-wrap{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+.ks-title{background:var(--bg3);padding:8px 13px;font-size:11px;font-weight:700;
+  color:var(--acc);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bdr);}
+.kst{border-collapse:collapse;width:100%;font-size:12px;}
+.kst th{background:var(--bg3);color:var(--tx2);padding:6px 10px;
+  border:1px solid var(--bdr);text-align:center;font-weight:600;font-size:10px;}
+.kst td{padding:5px 8px;border:1px solid var(--bdr);text-align:center;}
+.kst tr:hover td{background:var(--bg3);}
+.kd-body{padding:13px;background:#101419;}
+.ktot-row{display:flex;align-items:center;gap:14px;margin-bottom:13px;
+  padding:10px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--bdr);flex-wrap:wrap;}
+.cause-mm{font-size:11px;color:var(--warn);font-family:var(--mono);}
+.causes-grid{display:grid;grid-template-columns:1fr;gap:4px;}
+.causes-ttl{font-size:10px;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:7px;}
+.cause-row{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 8px;border-radius:5px;background:var(--bg3);border:1px solid var(--bdr);}
+.cause-lbl{font-size:12px;color:var(--tx2);flex:1;}
 
-/* ── CARD ── */
-.card{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);box-shadow:var(--sh);overflow:hidden;margin-bottom:12px;}
-.card-h{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);background:var(--s2);flex-wrap:wrap;gap:6px;}
-.card-title{font-size:12px;font-weight:600;color:var(--tx);display:flex;align-items:center;gap:6px;}
-.card-meta{font-size:10px;color:var(--tx2);}
-.card-b{padding:14px;}
-.card-b canvas{max-height:220px;}
-.card-b.tall canvas{max-height:275px;}
+/* SUMMARY */
+.sum-block{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:12px;}
+.sum-bt{background:var(--bg3);padding:8px 13px;font-size:11px;font-weight:700;color:var(--tx);border-bottom:1px solid var(--bdr);}
+.sum-row{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--bdr);flex-wrap:wrap;}
+.sum-row:last-child{border-bottom:none;}
+.sstat{font-size:12px;color:var(--tx2);}
+.bd-grid{padding:13px;display:flex;flex-direction:column;gap:7px;}
+.bd-row{display:flex;align-items:center;gap:8px;}
+.bd-name{font-size:11px;color:var(--tx2);min-width:200px;}
+.bd-bg{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.bd-bar{height:100%;background:var(--acc);border-radius:4px;transition:width .3s;}
+.bd-nums{min-width:90px;text-align:right;display:flex;gap:8px;justify-content:flex-end;font-family:var(--mono);font-size:11px;}
+.bd-pct{color:var(--tx3);}
 
-/* ── TABLE ── */
-.tbl-wrap{overflow-x:auto;}
-table.tbl{border-collapse:collapse;width:100%;font-size:12px;}
-table.tbl th{background:var(--s2);color:var(--tx2);padding:7px 12px;border-bottom:2px solid var(--bdr);text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
-table.tbl td{padding:7px 12px;border-bottom:1px solid var(--bdr);color:var(--tx);vertical-align:middle;}
-table.tbl tr:last-child td{border-bottom:none;}
-table.tbl tr:hover td{background:var(--s2);}
-table.tbl .m{font-family:var(--mono);font-size:11px;}
-table.tbl .r{text-align:right;}
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--tx3);}
+.empty-icon{font-size:44px;margin-bottom:12px;}
+.empty-title{font-size:16px;font-weight:600;color:var(--tx2);margin-bottom:5px;}
+.empty-sub{font-size:12px;}
 
-/* ── BADGES ── */
-.badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--mono);white-space:nowrap;}
-.b-blue{background:var(--acc-l);color:var(--acc);border:1px solid var(--acc-m);}
-.b-grn{background:var(--grn-l);color:var(--grn);border:1px solid #bbf7d0;}
-.b-warn{background:var(--warn-l);color:var(--warn);border:1px solid #fde68a;}
-.b-red{background:var(--red-l);color:var(--red);border:1px solid #fecaca;}
-.b-gray{background:var(--s3);color:var(--tx2);border:1px solid var(--bdr);}
-.b-pur{background:var(--pur-l);color:var(--pur);border:1px solid #ddd6fe;}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:#000c;z-index:999;
+  align-items:center;justify-content:center;padding:16px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;
+  width:100%;max-width:580px;max-height:90vh;overflow-y:auto;}
+.modal-head{padding:13px 17px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--bdr);font-weight:600;font-size:15px;}
+.modal-x{background:none;border:none;color:var(--tx2);font-size:17px;cursor:pointer;}
+.modal-x:hover{color:var(--red);}
+.modal-body{padding:17px;}
+.stbar{display:flex;align-items:center;margin-bottom:18px;}
+.stdot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;background:var(--bg3);border:2px solid var(--bdr);color:var(--tx2);}
+.stdot.done{background:var(--acc);border-color:var(--acc);color:#000;}
+.stline{flex:1;height:2px;background:var(--bdr);margin:0 8px;}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:12px;}
+.mp{font-size:12px;color:var(--tx2);margin-bottom:8px;line-height:1.6;}
+.msteps{padding-left:18px;color:var(--tx);font-size:12px;line-height:2.1;margin-bottom:8px;}
+.code-blk{background:#0d1117;border:1px solid var(--bdr);border-radius:6px;padding:11px;
+  font-family:var(--mono);font-size:11px;color:#7ee787;white-space:pre-wrap;overflow-x:auto;margin:10px 0;}
+.url-in{width:100%;background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);
+  padding:9px 11px;border-radius:var(--r);font-family:var(--mono);font-size:12px;margin-bottom:5px;}
+.url-in:focus{outline:none;border-color:var(--acc);}
+.url-warn{font-size:11px;color:var(--warn);margin-bottom:8px;}
+.macts{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
+.btn-p{background:var(--acc);color:#000;border:none;padding:8px 20px;border-radius:var(--r);font-weight:700;cursor:pointer;font-size:13px;margin-top:10px;}
+.btn-s{background:var(--bg3);border:1px solid var(--bdr);color:var(--tx2);padding:7px 16px;border-radius:var(--r);cursor:pointer;font-size:13px;}
+.btn-g{background:var(--grn);color:#000;border:none;padding:7px 20px;border-radius:var(--r);font-weight:700;cursor:pointer;font-size:13px;}
+.btn-g:disabled{opacity:.4;cursor:not-allowed;}
+.btn-danger{background:var(--red);color:#fff;border:none;padding:7px 20px;border-radius:var(--r);font-weight:700;cursor:pointer;font-size:13px;}
+.section-title{font-size:16px;font-weight:700;}
 
-/* ── FORMS ── */
-.fi{height:32px;background:var(--surface);border:1px solid var(--bdr);color:var(--tx);padding:0 10px;border-radius:var(--r);font-size:13px;width:100%;}
-.fi:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-l);}
-.fi-sm{height:28px;font-size:12px;}
-.fi-num{text-align:right;font-family:var(--mono);}
-.fi-mono{font-family:var(--mono);}
-select.fi{cursor:pointer;}
-.fl{display:block;font-size:10px;color:var(--tx2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
-.fg{margin-bottom:12px;}
-.fr{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
-.fc{flex:1;min-width:90px;}
-
-/* ── BANNERS ── */
-.banner{display:flex;align-items:flex-start;gap:8px;padding:9px 13px;border-radius:var(--r);margin-bottom:12px;font-size:12px;line-height:1.6;}
-.ban-info{background:var(--acc-l);border:1px solid var(--acc-m);color:#1e40af;}
-.ban-warn{background:var(--warn-l);border:1px solid #fde68a;color:#92400e;}
-.ban-grn{background:var(--grn-l);border:1px solid #bbf7d0;color:#14532d;}
-.ban-red{background:var(--red-l);border:1px solid #fecaca;color:#991b1b;}
-
-/* ── MODAL ── */
-.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center;padding:20px;}
-.ov.show{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--bdr);border-radius:14px;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;box-shadow:var(--sh2);}
-.mh{padding:13px 17px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);font-size:14px;font-weight:600;}
-.mb{padding:17px;}
-.mc{background:none;border:none;color:var(--tx2);font-size:18px;line-height:1;}
-.mc:hover{color:var(--red);}
-.m-acts{display:flex;gap:7px;margin-top:14px;padding-top:12px;border-top:1px solid var(--bdr);}
-
-/* ── TOAST ── */
-.toast{position:fixed;bottom:18px;right:18px;background:var(--surface);border:1px solid var(--bdr);border-radius:10px;padding:10px 15px;font-size:12px;font-weight:500;z-index:9999;transform:translateY(14px);opacity:0;transition:all .22s;pointer-events:none;box-shadow:var(--sh2);display:flex;align-items:center;gap:6px;max-width:280px;}
-.toast.show{transform:translateY(0);opacity:1;}
-.toast.ok{border-left:3px solid var(--grn);}
-.toast.err{border-left:3px solid var(--red);}
-.toast.warn{border-left:3px solid var(--warn);}
-
-/* ── EMPTY ── */
-.empty{text-align:center;padding:52px 24px;}
-.e-icon{font-size:42px;margin-bottom:10px;}
-.e-title{font-size:15px;font-weight:600;color:var(--tx2);margin-bottom:6px;}
-.e-sub{font-size:12px;color:var(--tx3);line-height:1.7;}
-
-/* ── DATA SOURCE SELECTOR ── */
-.source-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
-@media(max-width:700px){.source-cards{grid-template-columns:1fr;}}
-.source-card{border:2px solid var(--bdr);border-radius:var(--r2);padding:16px;cursor:pointer;transition:all .15s;text-align:center;}
-.source-card:hover{border-color:var(--acc-m);background:var(--acc-l);}
-.source-card.active{border-color:var(--acc);background:var(--acc-l);}
-.sc-icon{font-size:26px;margin-bottom:7px;}
-.sc-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;}
-.sc-sub{font-size:11px;color:var(--tx2);line-height:1.5;}
-
-/* ── MOBILE ── */
-@media(max-width:768px){
-  :root{--sb:0px;}
-  .sidebar{transform:translateX(-220px);width:220px;transition:transform .2s;box-shadow:none;}
-  .sidebar.open{transform:translateX(0);box-shadow:var(--sh2);}
-  .content{margin-left:0;}
-  .tb-center{display:none;}
-  .mob-menu{display:flex!important;}
-  .sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:190;}
-  .sb-ov.show{display:block;}
-}
-.mob-menu{display:none;background:none;border:none;color:var(--tx2);font-size:18px;padding:4px;}
-
-/* ── PROGRESS BAR ── */
-.pbar-bg{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;flex:1;min-width:60px;}
-.pbar-fill{height:100%;border-radius:3px;transition:width .3s;}
-
-/* ── GAS CODE BLOCK ── */
-.code-blk{background:#1e1e2e;color:#cdd6f4;border-radius:var(--r);padding:12px;font-family:var(--mono);font-size:10.5px;line-height:1.7;overflow-x:auto;white-space:pre;margin:8px 0;}
+/* Toast */
+.toast{position:fixed;bottom:16px;right:16px;z-index:300;padding:10px 16px;
+  border-radius:var(--r);font-size:13px;font-weight:600;border:1px solid;
+  display:none;align-items:center;gap:8px;max-width:320px;}
+.toast.show{display:flex;animation:slideIn .25s ease;}
+.toast.info{background:#1c2d42;border-color:var(--acc);color:var(--acc);}
+.toast.ok{background:#1c2d1c;border-color:var(--grn);color:var(--grn);}
+.toast.err{background:#2d1619;border-color:var(--red);color:var(--red);}
+@keyframes slideIn{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <button class="mob-menu" id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div class="logo">
-    <div class="logo-box">W<span style="color:#93c5fd">H</span></div>
+  <div class="brand">
+    <span class="brand-icon">◈</span>
     <div>
-      <div class="logo-name">Waste<em>Hub</em></div>
-      <div class="logo-sub">Analytics</div>
+      <div class="brand-name">Waste<span>Hub</span></div>
+      <div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">Production Monitoring</div>
     </div>
   </div>
-  <div class="tb-center">
-    <div class="period-group">
-      <button class="pg-btn on" data-p="daily"  onclick="setPeriod('daily')">📅 Daily</button>
-      <button class="pg-btn"    data-p="weekly" onclick="setPeriod('weekly')">📆 Weekly</button>
-      <button class="pg-btn"    data-p="monthly"onclick="setPeriod('monthly')">🗓 Monthly</button>
+  <div class="tp-controls">
+    <div class="ctrl">
+      <span class="ctrl-lbl">Grup</span>
+      <div class="pills" id="grp-pills">
+        <button class="pill on" data-grp="A">A</button>
+        <button class="pill" data-grp="B">B</button>
+        <button class="pill" data-grp="C">C</button>
+      </div>
     </div>
-    <div class="dr">
-      <input type="date" class="di" id="inp-from"/>
-      <span class="sep">→</span>
-      <input type="date" class="di" id="inp-to"/>
-      <button class="btn btn-sm" onclick="applyDateFilter()">Terapkan</button>
+    <div class="ctrl">
+      <span class="ctrl-lbl">Tanggal</span>
+      <input type="date" class="date-inp" id="inp-date"/>
+    </div>
+    <div class="ctrl">
+      <span class="ctrl-lbl">Shift</span>
+      <div class="pills" id="shift-pills">
+        <button class="pill son" data-shift="1">1</button>
+        <button class="pill" data-shift="2">2</button>
+        <button class="pill" data-shift="3">3</button>
+      </div>
+      <span class="shift-time" id="shift-lbl">06:00–14:00</span>
     </div>
   </div>
-  <div class="tb-right">
-    <div class="live-pill"><span class="ld"></span><span class="live-lbl">LIVE</span></div>
-    <span class="sync-lbl" id="sync-lbl">—</span>
-    <button class="btn btn-sm" id="btn-ref" onclick="refreshData()">⟳ Refresh</button>
-    <button class="btn btn-p btn-sm" onclick="openModal('m-config')">⚙ Sumber Data</button>
+  <div class="tp-stats">
+    <div class="stat"><span class="stat-l">Output</span><span class="stat-v" id="s-output">0</span></div>
+    <div class="stat"><span class="stat-l">Waste%</span><span class="stat-v" id="s-pct">—</span></div>
+    <div class="stat"><span class="stat-l">GF</span><span class="stat-v" id="s-gf">0</span></div>
+    <div class="stat"><span class="stat-l">Kardus</span><span class="stat-v" id="s-kardus">0</span></div>
+  </div>
+  <div class="tp-btns">
+    <div class="save-indicator"><span class="save-dot" id="sdot"></span><span class="save-txt" id="stxt">—</span></div>
+    <button class="btn-icon" id="btn-drive-cfg" title="Setup Drive">☁</button>
+    <button class="btn-drive" id="btn-drive">📤 Kirim Drive</button>
+    <button class="btn-reset" id="btn-reset" title="Reset data">🗑</button>
+    <button class="btn-xlsx" id="btn-xlsx">⬇ XLSX</button>
   </div>
 </div>
 
-<!-- SIDEBAR OVERLAY (mobile) -->
-<div class="sb-ov" id="sb-ov" onclick="toggleSidebar()"></div>
-
-<!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
-  <div class="sb-sec">Dashboard</div>
-  <div class="nav">
-    <button class="ni on" data-v="overview" onclick="nav('overview')"><span class="ni-icon">📊</span>Overview</button>
-    <button class="ni" data-v="waste"    onclick="nav('waste')"><span class="ni-icon">📦</span>Waste Pouch</button>
-    <button class="ni" data-v="gf"       onclick="nav('gf')"><span class="ni-icon">⚠️</span>Gagal Filling</button>
-    <button class="ni" data-v="kardus"   onclick="nav('kardus')"><span class="ni-icon">📋</span>Kardus</button>
-  </div>
-  <div class="sb-sec">Input &amp; Data</div>
-  <div class="nav">
-    <button class="ni" data-v="manual"   onclick="nav('manual')"><span class="ni-icon">✏️</span>Input Manual<span class="ni-badge" id="badge-manual" style="display:none">!</span></button>
-    <button class="ni" data-v="sessions" onclick="nav('sessions')"><span class="ni-icon">🗃️</span>Semua Sesi</button>
-  </div>
-  <div class="sb-footer" id="sb-footer">—</div>
-</div>
-
-<!-- CONTENT -->
-<div class="content" id="content">
-  <div class="empty">
-    <div class="e-icon">📊</div>
-    <div class="e-title">WasteHub Analytics siap digunakan</div>
-    <div class="e-sub">Klik <b>⚙ Sumber Data</b> untuk memuat data dari Drive,<br>upload file JSON, atau gunakan <b>✏️ Input Manual</b>.</div>
+<!-- Install Banner -->
+<div class="install-bar" id="install-bar">
+  <span class="install-bar-txt">📱 <strong>Install WasteHub</strong> sebagai aplikasi di HP/PC kamu</span>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn-install" id="btn-install">Install Sekarang</button>
+    <button class="btn-install-dismiss" id="btn-install-dismiss">✕</button>
   </div>
 </div>
 
-<!-- MODAL: SUMBER DATA -->
-<div class="ov" id="m-config">
-  <div class="modal" style="max-width:600px">
-    <div class="mh"><span>⚙ Sumber Data &amp; Konfigurasi</span><button class="mc" onclick="closeModal('m-config')">✕</button></div>
-    <div class="mb">
-      <div class="source-cards">
-        <div class="source-card" id="sc-drive" onclick="selectSource('drive')">
-          <div class="sc-icon">☁️</div>
-          <div class="sc-title">Google Drive</div>
-          <div class="sc-sub">Otomatis baca semua file JSON dari folder Drive via GAS</div>
-        </div>
-        <div class="source-card" id="sc-upload" onclick="selectSource('upload')">
-          <div class="sc-icon">📂</div>
-          <div class="sc-title">Upload File JSON</div>
-          <div class="sc-sub">Upload satu atau beberapa file .json yang disimpan WasteHub</div>
-        </div>
-        <div class="source-card" id="sc-manual" onclick="selectSource('manual-src')">
-          <div class="sc-icon">✏️</div>
-          <div class="sc-title">Input Manual</div>
-          <div class="sc-sub">Entry data dari kertas langsung ke dashboard</div>
-        </div>
+<!-- LINE BAR -->
+<div class="line-bar">
+  <span class="lb-lbl">Line</span>
+  <div class="line-pills" id="line-pills"></div>
+  <div class="machine-pills" id="machine-pills"></div>
+</div>
+
+<!-- TABNAV -->
+<nav class="tabnav">
+  <button class="tab on" data-tab="pouch">📦 Waste Pouch</button>
+  <button class="tab" data-tab="counter">🔢 Counter</button>
+  <button class="tab" data-tab="gf">⚠ Gagal Filling</button>
+  <button class="tab" data-tab="kardus">📋 Kardus</button>
+  <button class="tab" data-tab="summary">📊 Ringkasan</button>
+</nav>
+
+<div id="main">
+  <div id="tab-pouch"></div>
+  <div id="tab-counter" style="display:none"></div>
+  <div id="tab-gf" style="display:none"></div>
+  <div id="tab-kardus" style="display:none"></div>
+  <div id="tab-summary" style="display:none"></div>
+</div>
+
+<!-- Drive Modal -->
+<div class="modal-bg" id="modal-drive">
+  <div class="modal">
+    <div class="modal-head"><span>☁ Setup Google Drive</span><button class="modal-x" onclick="closeModal('modal-drive')">✕</button></div>
+    <div class="modal-body" id="modal-drive-body"></div>
+  </div>
+</div>
+
+<!-- Reset Modal -->
+<div class="modal-bg" id="modal-reset">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head"><span>🗑 Reset Data Input</span><button class="modal-x" onclick="closeModal('modal-reset')">✕</button></div>
+    <div class="modal-body">
+      <p class="mp">Semua data input (pouch, counter, gagal filling, kardus) akan dihapus.</p>
+      <p class="mp" style="color:var(--warn)">⚠ Header (Grup/Tanggal/Shift) dan konfigurasi Drive tetap ada. Tindakan ini tidak dapat dibatalkan.</p>
+      <div class="macts">
+        <button class="btn-s" onclick="closeModal('modal-reset')">Batal</button>
+        <button class="btn-danger" onclick="doReset()">Ya, Reset Data</button>
       </div>
-
-      <!-- DRIVE SECTION -->
-      <div id="src-drive" style="display:none">
-        <div class="banner ban-warn">⚠ Memerlukan update GAS. Tambahkan kode di bawah ke Apps Script yang sama, lalu redeploy.</div>
-        <div class="fg">
-          <label class="fl">URL Google Apps Script</label>
-          <input class="fi fi-mono" id="cfg-url" placeholder="https://script.google.com/macros/s/..."/>
-        </div>
-        <div class="fg">
-          <label class="fl">Folder ID Google Drive</label>
-          <input class="fi fi-mono" id="cfg-folder" placeholder="1CzNjJIymT9cOfwDEV7oHESt80kDOR9iN"/>
-        </div>
-        <div style="margin-bottom:8px;font-size:10px;color:var(--tx2);font-weight:600">Tambahkan fungsi ini ke GAS (tanpa menghapus doPost yang lama):</div>
-        <div class="code-blk">// Tambahkan semua fungsi ini ke Apps Script (jangan hapus doPost lama)
-
-function out(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doGet(e) {
-  try {
-    const p = e.parameter;
-    if (p.action === 'list') return listFiles(p.folderId);
-    if (p.action === 'read') return readFile(p.fileId);
-    return out({status:'error', msg:'unknown action'});
-  } catch(err) { return out({status:'error', msg:err.toString()}); }
-}
-
-function listFiles(folderId) {
-  const folder = folderId
-    ? DriveApp.getFolderById(folderId)
-    : DriveApp.getRootFolder();
-  const iter = folder.getFiles(), files = [];
-  while (iter.hasNext()) {
-    const f = iter.next();
-    if (f.getName().endsWith('.json'))
-      files.push({id: f.getId(), name: f.getName()});
-  }
-  return out({status:'ok', files});
-}
-
-function readFile(fileId) {
-  try {
-    const f = DriveApp.getFileById(fileId);
-    const data = JSON.parse(f.getBlob().getDataAsString());
-    return out({status:'ok', data: data});
-  } catch(err) {
-    return out({status:'error', msg: err.toString()});
-  }
-}</div>
-        <div class="m-acts">
-          <button class="btn btn-p" onclick="saveDriveConfig()">✓ Simpan &amp; Muat</button>
-          <button class="btn btn-sm" onclick="loadDemoData()">📊 Coba Data Demo</button>
-        </div>
-      </div>
-
-      <!-- UPLOAD SECTION -->
-      <div id="src-upload" style="display:none">
-        <div class="banner ban-info">ℹ️ Upload file <b>.json</b> yang sudah disimpan dari tombol <b>→ Sheets</b> di WasteHub. Bisa upload banyak sekaligus.</div>
-        <div style="border:2px dashed var(--bdr2);border-radius:var(--r2);padding:24px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2);"
-             id="drop-zone"
-             ondragover="event.preventDefault();this.style.borderColor='var(--acc)'"
-             ondragleave="this.style.borderColor='var(--bdr2)'"
-             ondrop="handleDrop(event)">
-          <div style="font-size:32px;margin-bottom:6px">📂</div>
-          <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:4px">Drag &amp; drop file JSON di sini</div>
-          <div style="font-size:11px;color:var(--tx2);margin-bottom:10px">atau klik untuk pilih file</div>
-          <input type="file" id="file-input" accept=".json" multiple style="display:none" onchange="handleFileInput(this)"/>
-          <button class="btn btn-sm" onclick="document.getElementById('file-input').click()">Pilih File</button>
-        </div>
-        <div id="upload-status" style="margin-top:8px;font-size:11px;color:var(--tx2)"></div>
-        <div class="m-acts">
-          <button class="btn btn-p" id="btn-load-files" onclick="loadUploadedFiles()" disabled>✓ Muat Data</button>
-        </div>
-      </div>
-
-      <!-- MANUAL SRC -->
-      <div id="src-manual-src" style="display:none">
-        <div class="banner ban-info">Data yang diinput manual otomatis tersimpan di browser dan muncul di dashboard.</div>
-        <div class="m-acts">
-          <button class="btn btn-p" onclick="closeModal('m-config');nav('manual')">✏️ Buka Form Input Manual</button>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -408,1016 +442,779 @@ function readFile(fileId) {
 <div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════
-// CONSTANTS
-// ══════════════════════════════════════════════
-const WT = ["Gagal Filling Kotor Dalam","Gagal Filling Sobek","Gagal Filling Tersealing",
-  "Pouch Bocor","Pouch Kembung","Tidak Ada Cooling","Berat Over/Under",
-  "Sealing NG","Seal Ngetrap","Bocor Pouch Sobek"];
-const GFV = ["77g","550g","1000g","270g","725g","77BB"];
-const KL = [
-  {id:"LC1",l:"LC1",v:"77YB",t:1},{id:"LC2",l:"LC2",v:"77YB",t:1},
-  {id:"LC3",l:"LC3",v:"77YB",t:1},{id:"LC3B",l:"LC3(77BB)",v:"77BB",t:1},
-  {id:"LC5",l:"LC5",v:"77BB",t:1},{id:"LD1",l:"LD1",v:"42g",t:1},
-  {id:"LD2",l:"LD2",v:"250g/280g",t:2},{id:"LD4",l:"LD4",v:"725g",t:3},
-  {id:"LD3",l:"LD3",v:"700g",t:3},{id:"LD5",l:"LD5",v:"20g",t:1},
-  {id:"LD6",l:"LD6",v:"12,5g",t:1},
+'use strict';
+// ═══════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════
+const LC={
+  C1:{machines:["D3","D4","D5","D6"],    variants:["77yb"]},
+  C2:{machines:["D1","D2","D7","D8"],    variants:["77yb"]},
+  C3:{machines:["D9","D10","D12","D14"], variants:["77yb","77bb"]},
+  C5:{machines:["D11","D13","D16","D17"],variants:["77bb"]},
+  D2:{machines:["F1"],                   variants:["250","270"]},
+  D3:{machines:["F2"],                   variants:["550","700","725","1000"]},
+  D4:{machines:["F3"],                   variants:["550","700","725","1000"]},
+};
+const PPB={"77yb":48,"77bb":48,"250":24,"270":24,"550":12,"700":12,"725":12,"1000":12};
+const WT=["Gagal Filling Kotor Dalam","Gagal Filling Sobek","Gagal Filling Tersealing",
+  "Pouch Bocor","Pouch Kembung","Tidak Ada Cooling","Berat Over/Under","Sealing NG","Seal Ngetrap","Bocor Pouch Sobek"];
+const GFV=["77g","550g","1000g","270g","725g","77BB"];
+const KL=[
+  {id:"LC1", lb:"LC1",        vr:"77YB",      tg:1},
+  {id:"LC2", lb:"LC2",        vr:"77YB",      tg:1},
+  {id:"LC3", lb:"LC3",        vr:"77YB",      tg:1},
+  {id:"LC3B",lb:"LC3 (77BB)", vr:"77BB",      tg:1},
+  {id:"LC5", lb:"LC5",        vr:"77BB",      tg:1},
+  {id:"LD1", lb:"LD1",        vr:"42g",       tg:1},
+  {id:"LD2", lb:"LD2",        vr:"250g/280g", tg:2},
+  {id:"LD4", lb:"LD4",        vr:"725g",      tg:3},
+  {id:"LD3", lb:"LD3",        vr:"700g",      tg:3},
+  {id:"LD5", lb:"LD5",        vr:"20g",       tg:1},
+  {id:"LD6", lb:"LD6",        vr:"12,5g",     tg:1},
 ];
-const LC = {
-  C1:{m:["D3","D4","D5","D6"],    v:["77yb"]},
-  C2:{m:["D1","D2","D7","D8"],    v:["77yb"]},
-  C3:{m:["D9","D10","D12","D14"], v:["77yb","77bb"]},
-  C5:{m:["D11","D13","D16","D17"],v:["77bb"]},
-  D2:{m:["F1"],                   v:["250","270"]},
-  D3:{m:["F2"],                   v:["550","700","725","1000"]},
-  D4:{m:["F3"],                   v:["550","700","725","1000"]},
+const KC=["Robek di CS","Robek di Modular","Robek di Gravity Roll","Robek pada saat Packing",
+  "Sealing Double","Rusak dinaikkan dari Paletizing","Rusak akibat Nandon","Akibat Tertabrak","Lainnya"];
+const SM={"1":"06:00–14:00","2":"14:00–22:00","3":"22:00–06:00"};
+const ALL_LINES=Object.keys(LC);
+const SK="wastehub_data", CK="wastehub_cfg";
+
+// ═══════════════════════════════════════════════════
+// STATE — auto-persisted to localStorage
+// ═══════════════════════════════════════════════════
+function dfState(){
+  return {
+    hdr:{g:"A",d:new Date().toISOString().split("T")[0],s:"1"},
+    ls:{},   // lineShared
+    ent:[],  // entries
+    epch:{}, // expanded pouch card
+    eln:{},  // expanded line card
+    ctr:{},  // counter data
+    ectr:{}, // expanded counter card
+    gf:{},
+    kd:{},
+    ekd:{},  // expanded kardus card
+    wc:{},   // waste cache: {"line-machine": wasteObj} — data tetap ada saat line di-unselect
+  };
+}
+let S=loadS();
+function loadS(){
+  try{const r=localStorage.getItem(SK);if(r){const p=JSON.parse(r);return Object.assign(dfState(),p);}}catch(e){}
+  return dfState();
+}
+function saveS(){
+  try{localStorage.setItem(SK,JSON.stringify({hdr:S.hdr,ls:S.ls,ent:S.ent,ctr:S.ctr,gf:S.gf,kd:S.kd,epch:S.epch,eln:S.eln,ectr:S.ectr,ekd:S.ekd,wc:S.wc}));}catch(e){}
+}
+// ── Kredensial Drive ditanamkan langsung — tidak perlu setup ulang di perangkat lain ──
+const _DEFAULT_CFG={
+  url:"https://script.google.com/macros/s/AKfycbz4cGCobsI8SjtJz1A0zIvtmF3L3C4NAK-Uc8fNPR8n7h4r-R8ZMZvpJe8YBMYhyOEv/exec",
+  fid:"1CzNjJIymT9cOfwDEV7oHESt80kDOR9iN"
 };
-const PPB = {"77yb":48,"77bb":48,"250":24,"270":24,"550":12,"700":12,"725":12,"1000":12};
-const ALL_LINES = Object.keys(LC);
+let CFG=loadCFG();
+function loadCFG(){
+  try{
+    const r=localStorage.getItem(CK);
+    const saved=r?JSON.parse(r):null;
+    // Gunakan nilai tersimpan hanya jika operator pernah override manual
+    // Jika kosong, selalu fallback ke default yang tertanam
+    return {
+      url:(saved?.url)||_DEFAULT_CFG.url,
+      fid:(saved?.fid)||_DEFAULT_CFG.fid
+    };
+  }catch(e){return {..._DEFAULT_CFG};}
+}
+function saveCFG(){try{localStorage.setItem(CK,JSON.stringify(CFG));}catch(e){}}
 
-// ══════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════
-let CFG = {
-  url: localStorage.getItem('wh_url') || '',
-  folder: localStorage.getItem('wh_folder') || '1CzNjJIymT9cOfwDEV7oHESt80kDOR9iN',
-};
-let driveRecords  = [];                                                // from GAS
-let uploadedRecords = [];                                              // from uploaded JSON files
-let localSessions = JSON.parse(localStorage.getItem('wh_manual')||'[]'); // manual input
-let allRecords    = [];                                                // merged view
-let charts        = {};
-let currentView   = 'overview';
-let currentPeriod = 'daily';
-let uploadedFiles = [];
-
-// pending files for upload
-let pendingFiles = [];
-
-Chart.defaults.color      = '#6b7280';
-Chart.defaults.borderColor= '#e2e6ea';
-Chart.defaults.font.family= "'Inter',sans-serif";
-
-// ══════════════════════════════════════════════
-// MERGE & HELPERS
-// ══════════════════════════════════════════════
-// ══════════════════════════════════════════════
-// NORMALIZE — map short keys → long keys
-// Handles both formats from WasteHub app
-// ══════════════════════════════════════════════
-function normalizeRecord(r) {
-  if (!r || typeof r !== 'object') return r;
-  const n = {...r};
-
-  // 1. header: {g,d,s} → {group,date,shift}
-  if (n.header) {
-    const h = {...n.header};
-    if (h.g !== undefined && h.group === undefined) h.group = h.g;
-    if (h.d !== undefined && h.date  === undefined) h.date  = h.d;
-    if (h.s !== undefined && h.shift === undefined) h.shift = String(h.s);
-    n.header = h;
-  }
-
-  // 2. entries[].w → entries[].waste
-  if (Array.isArray(n.entries)) {
-    n.entries = n.entries.map(e => {
-      if (!e) return e;
-      const ne = {...e};
-      if (ne.w !== undefined && ne.waste === undefined) ne.waste = ne.w;
-      return ne;
-    });
-  }
-
-  // 3. lineShared[line].obv → lineShared[line].outputByVariant
-  if (n.lineShared && typeof n.lineShared === 'object') {
-    const ls = {};
-    Object.entries(n.lineShared).forEach(([line, sh]) => {
-      if (!sh) { ls[line] = sh; return; }
-      const nsh = {...sh};
-      if (nsh.obv !== undefined && nsh.outputByVariant === undefined)
-        nsh.outputByVariant = nsh.obv;
-      ls[line] = nsh;
-    });
-    n.lineShared = ls;
-  }
-
-  // 4. kardus[id].tot → kardus[id].total
-  if (n.kardus && typeof n.kardus === 'object') {
-    const kd = {};
-    Object.entries(n.kardus).forEach(([kid, kv]) => {
-      if (!kv) { kd[kid] = kv; return; }
-      const nkv = {...kv};
-      if (nkv.tot !== undefined && nkv.total === undefined) nkv.total = nkv.tot;
-      kd[kid] = nkv;
-    });
-    n.kardus = kd;
-  }
-
-  return n;
+let _saveT=null;
+function sched(){
+  document.getElementById("sdot").classList.add("saving");
+  clearTimeout(_saveT);
+  _saveT=setTimeout(()=>{
+    saveS();
+    document.getElementById("sdot").classList.remove("saving");
+    const now=new Date();
+    document.getElementById("stxt").textContent=`${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
+  },600);
 }
 
-function mergeAll() {
-  allRecords = [
-    ...driveRecords.map(normalizeRecord),
-    ...uploadedRecords.map(normalizeRecord),
-    ...localSessions.map(normalizeRecord)
-  ];
-  updateSidebarFooter();
-}
-const ni   = v => parseInt(v)||0;
-const nf   = v => parseFloat(v)||0;
-const ppb  = v => PPB[v]||1;
-const fmt  = d => d.toISOString().split('T')[0];
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+const ni=v=>parseInt(v)||0;
+const nf=v=>parseFloat(v)||0;
+const ppb=v=>PPB[v]||1;
+function lout(ln){const sh=S.ls[ln];if(!sh)return 0;return Object.entries(sh.obv).reduce((s,[v,b])=>s+ni(b)*ppb(v),0);}
+function twaste(w){return WT.reduce((s,t)=>s+ni(w[t]),0);}
+function pctS(w,p){if(!p)return "—";return ((w/p)*100).toFixed(2)+"%";}
+function pctC(w,p){if(!p)return "#8b949e";const r=(w/p)*100;return r>5?"#f85149":r>2?"#f0883e":"#3fb950";}
+function emLS(ln){const vs=LC[ln].variants,obv={};vs.forEach(v=>{obv[v]="";});return{variant:vs[0],obv,sampelQC:"",slQC:"",hasilHeater:"",wasteFilling:""};}
+function emW(){const w={};WT.forEach(t=>{w[t]="";});return w;}
+function emKL(){const c={};KC.forEach(x=>{c[x]="";});return{tot:"",causes:c};}
+// counter: only counter + fg
+function emCtr(ln){return LC[ln].machines.map(m=>({m,counter:"",fg:""}));}
+function ensLS(ln){if(!S.ls[ln])S.ls[ln]=emLS(ln);}
+function ensCtr(ln){if(!S.ctr[ln])S.ctr[ln]=emCtr(ln);}
 
-function lineOutput(ls, line) {
-  const sh = ls?.[line]; if(!sh) return 0;
-  return Object.entries(sh.outputByVariant||{}).reduce((s,[v,b])=>s+ni(b)*ppb(v),0);
+// ═══════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════
+function updStats(){
+  const to=Object.keys(S.ls).reduce((s,l)=>s+lout(l),0);
+  const tw=S.ent.reduce((s,e)=>s+twaste(e.w),0);
+  const gf=GFV.reduce((s,v)=>s+ni(S.gf[v]?.cl)+ni(S.gf[v]?.op),0);
+  const kd=KL.reduce((s,k)=>s+ni((S.kd[k.id]||emKL()).tot),0);
+  document.getElementById("s-output").textContent=to.toLocaleString();
+  document.getElementById("s-pct").textContent=to?((tw/to)*100).toFixed(2)+"%":"—";
+  document.getElementById("s-gf").textContent=gf.toLocaleString();
+  document.getElementById("s-kardus").textContent=kd.toLocaleString();
 }
-function totalWaste(w) { return WT.reduce((s,t)=>s+ni(w?.[t]),0); }
 
-function filterByDate(records) {
-  const f = document.getElementById('inp-from').value;
-  const t = document.getElementById('inp-to').value;
-  return records.filter(r => {
-    const d = r.header?.date||'';
-    return (!f||d>=f)&&(!t||d<=t);
+// ═══════════════════════════════════════════════════
+// LINE BAR
+// ═══════════════════════════════════════════════════
+function rLineBar(){
+  const lp=document.getElementById("line-pills");
+  const mp=document.getElementById("machine-pills");
+  lp.innerHTML="";mp.innerHTML="";
+  ALL_LINES.forEach(ln=>{
+    const on=S.ent.some(e=>e.line===ln);
+    const cnt=S.ent.filter(e=>e.line===ln).length;
+    const tot=LC[ln].machines.length;
+    const b=document.createElement("button");
+    b.className="lp"+(on?" on":"");
+    b.innerHTML=ln+(on?`<span class="lp-cnt">${cnt}/${tot}</span>`:"");
+    b.title=LC[ln].machines.join(", ");
+    b.onclick=()=>toggleLine(ln);
+    lp.appendChild(b);
+  });
+  const al=[...new Set(S.ent.map(e=>e.line))];
+  al.forEach(ln=>{
+    const g=document.createElement("div");g.className="mpg";
+    g.innerHTML=`<span class="mpg-lbl">${ln}</span>`;
+    LC[ln].machines.forEach(m=>{
+      const on=S.ent.some(e=>e.line===ln&&e.machine===m);
+      const b=document.createElement("button");b.className="mp"+(on?" on":"");b.textContent=m;
+      b.onclick=()=>toggleMachine(ln,m);g.appendChild(b);
+    });
+    mp.appendChild(g);
   });
 }
-function groupBy(recs, keyFn) {
-  const m = {};
-  recs.forEach(r=>{ const k=keyFn(r); if(!m[k])m[k]=[]; m[k].push(r); });
-  return m;
-}
-function weekKey(dateStr) {
-  const d = new Date(dateStr||Date.now());
-  const dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
-  dt.setUTCDate(dt.getUTCDate()+4-(dt.getUTCDay()||7));
-  const ys = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
-  return `${dt.getUTCFullYear()}-W${String(Math.ceil((((dt-ys)/864e5)+1)/7)).padStart(2,'0')}`;
-}
-function periodKey(r) {
-  const d = r.header?.date||'';
-  if(currentPeriod==='daily')   return d;
-  if(currentPeriod==='weekly')  return weekKey(d);
-  return d.substring(0,7);
-}
-function shortLabel(k) {
-  if(currentPeriod==='monthly'){
-    const mo=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
-    const [y,m]=k.split('-'); return mo[parseInt(m)-1]+' '+y;
-  }
-  return currentPeriod==='daily'?k.substring(5):k;
-}
 
-function agg(recs) {
-  let out=0,waste=0,gfc=0,gfo=0,kard=0;
-  const wbt={};  WT.forEach(t=>{wbt[t]=0;});
-  recs.forEach(r=>{
-    Object.keys(r.lineShared||{}).forEach(l=>{ out+=lineOutput(r.lineShared,l); });
-    (r.entries||[]).forEach(e=>{ const w=totalWaste(e.waste||{}); waste+=w; WT.forEach(t=>{wbt[t]+=ni(e.waste?.[t]);}); });
-    GFV.forEach(v=>{ gfc+=ni(r.gf?.[v]?.close); gfo+=ni(r.gf?.[v]?.open); });
-    KL.forEach(k=>{ kard+=ni(r.kardus?.[k.id]?.total); });
-  });
-  const pct = out>0?(waste/out*100).toFixed(2):0;
-  return {out,waste,pct:+pct,gfc,gfo,kard,wbt,n:recs.length};
-}
-
-function dlt(c,p) {
-  if(!p) return {v:'—',cls:'neu'};
-  const d=((c-p)/p*100).toFixed(1);
-  return {v:(+d>0?'+':'')+d+'%',cls:+d>0?'up':+d<0?'dn':'neu'};
-}
-function pctCls(v) { return +v>5?'c-red':+v>2?'c-warn':'c-grn'; }
-function pBadge(v) {
-  const m = {c:'b-grn',w:'b-warn',r:'b-red'};
-  const c = +v>5?'r':+v>2?'w':'c';
-  return `<span class="badge ${m[c]}">${v}%</span>`;
-}
-function destroyChart(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
-
-// ══════════════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════════════
-function nav(v) {
-  currentView = v;
-  document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.dataset.v===v));
-  if(v==='manual')   { renderManual(); return; }
-  if(v==='sessions') { renderSessions(); return; }
-  renderView();
-  if(window.innerWidth<=768) toggleSidebar(false);
-}
-function toggleSidebar(force) {
-  const sb=document.getElementById('sidebar'),ov=document.getElementById('sb-ov');
-  const open=force!==undefined?force:!sb.classList.contains('open');
-  sb.classList.toggle('open',open); ov.classList.toggle('show',open);
-}
-
-// ══════════════════════════════════════════════
-// PERIOD & DATE
-// ══════════════════════════════════════════════
-function setPeriod(p) {
-  currentPeriod=p;
-  document.querySelectorAll('.pg-btn').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
-  const t=new Date();
-  if(p==='daily'){
-    document.getElementById('inp-from').value=fmt(t);
-    document.getElementById('inp-to').value=fmt(t);
-  } else if(p==='weekly'){
-    const day=t.getDay()||7;
-    const mon=new Date(t); mon.setDate(t.getDate()-day+1);
-    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
-    document.getElementById('inp-from').value=fmt(mon);
-    document.getElementById('inp-to').value=fmt(sun);
+function toggleLine(ln){
+  if(S.ent.some(e=>e.line===ln)){
+    // Simpan waste setiap mesin ke cache sebelum dihapus
+    S.ent.filter(e=>e.line===ln).forEach(e=>{
+      if(!S.wc) S.wc={};
+      S.wc[`${ln}-${e.machine}`]=e.w;
+    });
+    S.ent=S.ent.filter(e=>e.line!==ln);
+    delete S.ctr[ln];
   } else {
-    document.getElementById('inp-from').value=fmt(new Date(t.getFullYear(),t.getMonth(),1));
-    document.getElementById('inp-to').value=fmt(new Date(t.getFullYear(),t.getMonth()+1,0));
-  }
-  renderView();
-}
-function applyDateFilter(){ renderView(); }
-
-// ══════════════════════════════════════════════
-// DATA LOADING — DRIVE
-// ══════════════════════════════════════════════
-async function refreshData() {
-  if(!CFG.url){ openModal('m-config'); selectSource('drive'); return; }
-  const btn=document.getElementById('btn-ref');
-  btn.textContent='⟳'; btn.disabled=true;
-  try {
-    const listUrl=`${CFG.url}?action=list&folderId=${encodeURIComponent(CFG.folder)}&t=${Date.now()}`;
-    const res=await fetch(listUrl);
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const json=await res.json();
-    if(json.status==='error') throw new Error(json.msg||'GAS error');
-    if(!json.files) throw new Error('Response tidak ada daftar file. Pastikan doGet sudah ditambahkan ke GAS.');
-    
-    const records=[];
-    let loaded=0;
-    for(const f of json.files.slice(0,300)){
-      try{
-        const r2=await fetch(`${CFG.url}?action=read&fileId=${encodeURIComponent(f.id)}&t=${Date.now()}`);
-        if(!r2.ok) continue;
-        const raw=await r2.text();
-        let data;
-        try { data=JSON.parse(raw); } catch { continue; }
-        // Handle GAS wrapping: {status:'ok', data: {...}} or direct object
-        if(data?.status==='ok' && data?.data) data=data.data;
-        // Handle array of records inside a file
-        if(Array.isArray(data)){
-          data.forEach(d=>{ if(d?.header){ records.push(d); loaded++; } });
-        } else if(data?.header){
-          records.push(data); loaded++;
-        }
-      } catch {}
-    }
-    driveRecords=records;
-    mergeAll();
-    document.getElementById('sync-lbl').textContent=new Date().toLocaleTimeString('id-ID');
-    if(loaded===0 && json.files.length>0){
-      showToast(`⚠ ${json.files.length} file ditemukan tapi 0 terbaca. Cek format JSON & redeploy GAS.`,'warn');
-    } else {
-      showToast(`✓ ${loaded} sesi dimuat dari Drive`,'ok');
-    }
-    renderView();
-  } catch(err){
-    showToast('✗ '+err.message,'err');
-  }
-  btn.textContent='⟳ Refresh'; btn.disabled=false;
-}
-
-function saveDriveConfig(){
-  const url=document.getElementById('cfg-url').value.trim();
-  const folder=document.getElementById('cfg-folder').value.trim();
-  if(!url){ showToast('URL tidak boleh kosong','err'); return; }
-  CFG.url=url; CFG.folder=folder;
-  localStorage.setItem('wh_url',url);
-  if(folder) localStorage.setItem('wh_folder',folder);
-  updateSidebarFooter();
-  closeModal('m-config');
-  showToast('✓ Konfigurasi disimpan','ok');
-  refreshData();
-}
-
-// ══════════════════════════════════════════════
-// DATA LOADING — FILE UPLOAD
-// ══════════════════════════════════════════════
-function handleDrop(e){
-  e.preventDefault();
-  document.getElementById('drop-zone').style.borderColor='var(--bdr2)';
-  const files=[...e.dataTransfer.files].filter(f=>f.name.endsWith('.json'));
-  addPendingFiles(files);
-}
-function handleFileInput(el){
-  const files=[...el.files].filter(f=>f.name.endsWith('.json'));
-  addPendingFiles(files);
-}
-function addPendingFiles(files){
-  pendingFiles=[...pendingFiles,...files];
-  document.getElementById('upload-status').textContent=`${pendingFiles.length} file siap dimuat: ${pendingFiles.map(f=>f.name).join(', ')}`;
-  document.getElementById('btn-load-files').disabled=false;
-}
-async function loadUploadedFiles(){
-  const records=[];
-  for(const f of pendingFiles){
-    try{
-      const text=await f.text();
-      const data=JSON.parse(text);
-      // Support both single record and array
-      if(Array.isArray(data)) data.forEach(d=>{ if(d?.header) records.push(d); });
-      else if(data?.header) records.push(data);
-    } catch(e){ showToast('⚠ File '+f.name+' tidak valid','warn'); }
-  }
-  if(!records.length){ showToast('Tidak ada data valid dalam file','err'); return; }
-  uploadedRecords=records;
-  mergeAll();
-  pendingFiles=[];
-  document.getElementById('upload-status').textContent='';
-  document.getElementById('btn-load-files').disabled=true;
-  document.getElementById('file-input').value='';
-  document.getElementById('sync-lbl').textContent=records.length+' file';
-  closeModal('m-config');
-  showToast(`✓ ${records.length} sesi dari file JSON`,'ok');
-  renderView();
-}
-
-// ══════════════════════════════════════════════
-// DEMO DATA
-// ══════════════════════════════════════════════
-function loadDemoData(){
-  const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-  const records=[], today=new Date();
-  for(let d=29;d>=0;d--){
-    const dt=new Date(today); dt.setDate(today.getDate()-d);
-    const ds=fmt(dt);
-    ['A','B','C'].forEach(grp=>{
-      ['1','2','3'].forEach(shift=>{
-        const lines=['C1','C2','C3'];
-        const ls={};
-        lines.forEach(l=>{ls[l]={variant:'77yb',outputByVariant:{'77yb':rnd(80,200)},sampelQC:rnd(5,20),slQC:rnd(0,3),hasilHeater:rnd(60,100),wasteFilling:rnd(0,50)};});
-        const entries=[];
-        lines.forEach(line=>LC[line].m.forEach(machine=>{ const w={}; WT.forEach(t=>{w[t]=rnd(0,20);}); entries.push({id:`${line}-${machine}`,line,machine,waste:w}); }));
-        const gf={};
-        GFV.forEach(v=>{gf[v]={close:rnd(0,60),open:rnd(0,30)};});
-        const kardus={};
-        KL.forEach(k=>{kardus[k.id]={total:rnd(0,k.t+1),causes:{}};});
-        records.push({savedAt:dt.toISOString(),header:{group:grp,date:ds,shift},lineShared:ls,entries,gf,kardus});
-      });
+    ensLS(ln);ensCtr(ln);
+    LC[ln].machines.forEach(m=>{
+      const cacheKey=`${ln}-${m}`;
+      // Restore data waste dari cache jika ada, pakai kosong jika belum pernah diisi
+      const savedWaste=(S.wc&&S.wc[cacheKey])||emW();
+      S.ent.push({id:`${ln}-${m}-${Date.now()}`,line:ln,machine:m,w:savedWaste});
     });
+    S.eln[ln]=true;
   }
-  driveRecords=records;
-  mergeAll();
-  document.getElementById('sync-lbl').textContent='Demo';
-  closeModal('m-config');
-  showToast(`✓ ${records.length} data demo dimuat`,'ok');
-  renderView();
+  sched();renderAll();
 }
-
-// ══════════════════════════════════════════════
-// RENDER ROUTER
-// ══════════════════════════════════════════════
-function renderView(){
-  if(!['overview','waste','gf','kardus'].includes(currentView)) return;
-  const filtered=filterByDate(allRecords);
-  if(!filtered.length){
-    document.getElementById('content').innerHTML=`
-      <div class="empty">
-        <div class="e-icon">🔍</div>
-        <div class="e-title">Tidak ada data pada rentang ini</div>
-        <div class="e-sub">Ubah rentang tanggal, atau muat data via <b>⚙ Sumber Data</b>.<br>Total tersedia: ${allRecords.length} sesi.</div>
-      </div>`;
-    return;
+function toggleMachine(ln,m){
+  const ex=S.ent.find(e=>e.line===ln&&e.machine===m);
+  if(ex){
+    // Simpan waste ke cache sebelum dihapus
+    if(!S.wc) S.wc={};
+    S.wc[`${ln}-${m}`]=ex.w;
+    S.ent=S.ent.filter(e=>!(e.line===ln&&e.machine===m));
+    if(S.ctr[ln])S.ctr[ln]=S.ctr[ln].filter(x=>x.m!==m);
+  } else {
+    ensLS(ln);ensCtr(ln);
+    const cacheKey=`${ln}-${m}`;
+    const savedWaste=(S.wc&&S.wc[cacheKey])||emW();
+    S.ent.push({id:`${ln}-${m}-${Date.now()}`,line:ln,machine:m,w:savedWaste});
+    if(!S.ctr[ln].find(x=>x.m===m))S.ctr[ln].push({m,counter:"",fg:""});
   }
-  if(currentView==='overview') renderOverview(filtered);
-  if(currentView==='waste')    renderWaste(filtered);
-  if(currentView==='gf')       renderGF(filtered);
-  if(currentView==='kardus')   renderKardus(filtered);
+  sched();renderAll();
 }
 
-// ══════════════════════════════════════════════
-// OVERVIEW
-// ══════════════════════════════════════════════
-function renderOverview(recs){
-  const a=agg(recs);
-  const byP=groupBy(recs,periodKey);
-  const keys=Object.keys(byP).sort();
-  const labs=keys.map(shortLabel);
+function renderAll(){rLineBar();rPouch();rCounter();rGF();rKardus();if(document.getElementById("tab-summary").style.display!=="none")rSummary();updStats();}
 
-  const half=Math.floor(keys.length/2);
-  const prev=agg(keys.slice(0,half).flatMap(k=>byP[k]||[]));
-  const curr=agg(keys.slice(half).flatMap(k=>byP[k]||[]));
-
-  const outD=keys.map(k=>agg(byP[k]).out);
-  const wasD=keys.map(k=>agg(byP[k]).waste);
-  const pctD=keys.map(k=>agg(byP[k]).pct);
-
-  // Line breakdown
-  const lm={};
-  recs.forEach(r=>{
-    Object.keys(r.lineShared||{}).forEach(l=>{if(!lm[l])lm[l]={out:0,w:0}; lm[l].out+=lineOutput(r.lineShared,l);});
-    (r.entries||[]).forEach(e=>{if(!lm[e.line])lm[e.line]={out:0,w:0}; lm[e.line].w+=totalWaste(e.waste||{});});
-  });
-
-  // Shift
-  const sm={'1':{w:0},'2':{w:0},'3':{w:0}};
-  recs.forEach(r=>{const s=r.header?.shift||'1'; if(!sm[s])sm[s]={w:0}; (r.entries||[]).forEach(e=>{sm[s].w+=totalWaste(e.waste||{});});});
-
-  const localCount=localSessions.filter(r=>{const d=r.header?.date||'',f=document.getElementById('inp-from').value,t=document.getElementById('inp-to').value;return(!f||d>=f)&&(!t||d<=t);}).length;
-
-  document.getElementById('content').innerHTML=`
-    <div class="ph">
-      <div class="ph-left">
-        <div class="title">Overview — ${currentPeriod==='daily'?'Daily':currentPeriod==='weekly'?'Weekly':'Monthly'}</div>
-        <div class="sub">${document.getElementById('inp-from').value} → ${document.getElementById('inp-to').value} · ${recs.length} sesi${localCount?` (${localCount} manual)`:''}</div>
-      </div>
-      <div class="ph-right">
-        <button class="btn btn-sm" onclick="exportCSV()">⬇ CSV</button>
-      </div>
+function mkCard(id,hL,hR,body,open,togFn){
+  return `<div class="card" id="card-${id}">
+    <div class="card-head${open?" open":""}" onclick="${togFn}">
+      <div class="chl">${hL}</div><div class="chr">${hR}<span class="caret">${open?"▲":"▼"}</span></div>
     </div>
-    ${localCount?`<div class="banner ban-warn">⚠ ${localCount} sesi input manual ikut dihitung.</div>`:''}
-
-    <div class="kpi-row c6">
-      ${kpiCard('Total Output','c-blue','var(--acc)',a.out.toLocaleString(),'pcs',dlt(curr.out,prev.out))}
-      ${kpiCard('Waste Pouch','c-red','var(--red)',a.waste.toLocaleString(),'pcs',dlt(curr.waste,prev.waste))}
-      ${kpiCard('% Waste',pctCls(a.pct),'var(--warn)',a.pct+'%','target ≤ 2%',dlt(curr.pct,prev.pct))}
-      ${kpiCard('GF Close','c-grn','var(--grn)',a.gfc.toLocaleString(),'pcs',{v:'Open: '+a.gfo.toLocaleString(),cls:'neu'})}
-      ${kpiCard('Waste Kardus','','var(--pur)',a.kard.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
-      ${kpiCard('Sesi','c-blue','var(--acc-m)',a.n,'periode: '+keys.length,{v:'—',cls:'neu'})}
-    </div>
-
-    <div class="g2">
-      <div class="card"><div class="card-h"><div class="card-title">📈 Output &amp; Waste Trend</div><div class="card-meta">${labs.length} titik</div></div><div class="card-b tall"><canvas id="ch-trend"></canvas></div></div>
-      <div class="card"><div class="card-h"><div class="card-title">📉 % Waste Trend</div><div class="card-meta">Target ≤ 2%</div></div><div class="card-b tall"><canvas id="ch-pct"></canvas></div></div>
-    </div>
-    <div class="g3">
-      <div class="card"><div class="card-h"><div class="card-title">🔄 Distribusi per Shift</div></div><div class="card-b"><canvas id="ch-shift"></canvas></div></div>
-      <div class="card"><div class="card-h"><div class="card-title">🏭 Waste per Line</div></div><div class="card-b"><canvas id="ch-line"></canvas></div></div>
-      <div class="card"><div class="card-h"><div class="card-title">⚠️ GF Total Trend</div></div><div class="card-b"><canvas id="ch-gft"></canvas></div></div>
-    </div>
-    ${tblLine(lm)}
-    ${tblShift(recs)}
-  `;
-
-  buildTrend('ch-trend',labs,outD,wasD);
-  buildPct('ch-pct',labs,pctD);
-  buildDonut('ch-shift',['Shift 1','Shift 2','Shift 3'],[sm['1']?.w||0,sm['2']?.w||0,sm['3']?.w||0]);
-  buildBar('ch-line',Object.keys(lm),Object.values(lm).map(d=>d.w));
-  buildLine('ch-gft',labs,keys.map(k=>{const a=agg(byP[k]);return a.gfc+a.gfo;}),'#d97706','GF Total');
-}
-
-function kpiCard(label,valCls,barColor,val,sub,d){
-  return `<div class="kc">
-    <div class="kc-bar" style="background:${barColor}"></div>
-    <div class="kc-label">${label}</div>
-    <div class="kc-val ${valCls}">${val}</div>
-    <div class="kc-delta ${d.cls}">${d.v!=='—'?'↕ ':''} ${d.v}</div>
-    <div class="kc-sub">${sub}</div>
+    <div class="card-body${open?" open":""}">${body}</div>
   </div>`;
 }
 
-// ══════════════════════════════════════════════
-// WASTE VIEW
-// ══════════════════════════════════════════════
-function renderWaste(recs){
-  const a=agg(recs);
-  const sorted=WT.map(t=>({t,v:a.wbt[t]||0})).sort((x,y)=>y.v-x.v);
-  const mm={};
-  recs.forEach(r=>(r.entries||[]).forEach(e=>{
-    if(!mm[e.machine])mm[e.machine]={line:e.line,w:0,n:0};
-    mm[e.machine].w+=totalWaste(e.waste||{}); mm[e.machine].n++;
-  }));
-
-  document.getElementById('content').innerHTML=`
-    <div class="ph"><div class="ph-left"><div class="title">Waste Pouch Analysis</div><div class="sub">${recs.length} sesi</div></div></div>
-    <div class="kpi-row c4">
-      ${kpiCard('Total Waste','c-red','var(--red)',a.waste.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
-      ${kpiCard('% Waste',pctCls(a.pct),'var(--warn)',a.pct+'%','dari '+a.out.toLocaleString()+' pcs',{v:'—',cls:'neu'})}
-      ${kpiCard('Jenis Terbanyak','','var(--pur)',sorted[0]?.t.substring(0,18)||'—',(sorted[0]?.v||0).toLocaleString()+' pcs',{v:'—',cls:'neu'})}
-      ${kpiCard('Mesin Tercatat','c-blue','var(--acc)',Object.keys(mm).length,'mesin',{v:'—',cls:'neu'})}
-    </div>
-    <div class="g2e">
-      <div class="card"><div class="card-h"><div class="card-title">📊 Breakdown Jenis Waste</div></div><div class="card-b tall"><canvas id="ch-wt"></canvas></div></div>
-      <div class="card"><div class="card-h"><div class="card-title">🥧 Proporsi</div></div><div class="card-b tall"><canvas id="ch-wp"></canvas></div></div>
-    </div>
-    ${tblWasteType(sorted)}
-    ${tblMachine(mm)}
-  `;
-  buildHBar('ch-wt',sorted.map(s=>s.t.length>26?s.t.substring(0,26)+'…':s.t),sorted.map(s=>s.v));
-  buildPie('ch-wp',sorted.filter(s=>s.v>0).map(s=>s.t.substring(0,20)),sorted.filter(s=>s.v>0).map(s=>s.v));
-}
-
-// ══════════════════════════════════════════════
-// GF VIEW
-// ══════════════════════════════════════════════
-function renderGF(recs){
-  const a=agg(recs);
-  const gfv={};
-  GFV.forEach(v=>{gfv[v]={c:0,o:0}; recs.forEach(r=>{gfv[v].c+=ni(r.gf?.[v]?.close); gfv[v].o+=ni(r.gf?.[v]?.open);});});
-
-  const byP=groupBy(recs,periodKey);
-  const keys=Object.keys(byP).sort();
-  const labs=keys.map(shortLabel);
-  const cD=keys.map(k=>byP[k].reduce((s,r)=>s+GFV.reduce((ss,v)=>ss+ni(r.gf?.[v]?.close),0),0));
-  const oD=keys.map(k=>byP[k].reduce((s,r)=>s+GFV.reduce((ss,v)=>ss+ni(r.gf?.[v]?.open),0),0));
-
-  const tot=a.gfc+a.gfo;
-  const selesai=tot>0?((a.gfc/tot)*100).toFixed(1):0;
-
-  document.getElementById('content').innerHTML=`
-    <div class="ph"><div class="ph-left"><div class="title">Gagal Filling Analysis</div><div class="sub">Total: ${tot.toLocaleString()} pcs</div></div></div>
-    <div class="kpi-row c4">
-      ${kpiCard('GF Close','c-grn','var(--grn)',a.gfc.toLocaleString(),'selesai',{v:'—',cls:'neu'})}
-      ${kpiCard('GF Open','c-warn','var(--warn)',a.gfo.toLocaleString(),'belum',{v:'—',cls:'neu'})}
-      ${kpiCard('Total GF','c-blue','var(--acc)',tot.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
-      ${kpiCard('% Selesai','c-grn','var(--grn)',selesai+'%','close/total',{v:'—',cls:'neu'})}
-    </div>
-    <div class="g2e">
-      <div class="card"><div class="card-h"><div class="card-title">📊 GF Trend (Close vs Open)</div></div><div class="card-b tall"><canvas id="ch-gftrend"></canvas></div></div>
-      <div class="card"><div class="card-h"><div class="card-title">📊 GF per Varian</div></div><div class="card-b tall"><canvas id="ch-gfvar"></canvas></div></div>
-    </div>
-    ${tblGF(gfv)}
-  `;
-  buildStacked('ch-gftrend',labs,cD,oD);
-  buildGFVar('ch-gfvar',gfv);
-}
-
-// ══════════════════════════════════════════════
-// KARDUS VIEW
-// ══════════════════════════════════════════════
-function renderKardus(recs){
-  const km={};
-  KL.forEach(k=>{
-    km[k.id]={...k,total:0,over:0};
-    recs.forEach(r=>{
-      const t=ni(r.kardus?.[k.id]?.total);
-      km[k.id].total+=t;
-      if(t>k.t) km[k.id].over++;
+// ═══════════════════════════════════════════════════
+// TAB: WASTE POUCH
+// ═══════════════════════════════════════════════════
+function rPouch(){
+  const el=document.getElementById("tab-pouch");
+  const bl={};S.ent.forEach(e=>{if(!bl[e.line])bl[e.line]=[];bl[e.line].push(e);});
+  if(!Object.keys(bl).length){el.innerHTML=`<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Belum ada line dipilih</div><div class="empty-sub">Klik tombol line di atas</div></div>`;return;}
+  let html="";
+  Object.entries(bl).forEach(([ln,ents])=>{
+    const sh=S.ls[ln]||emLS(ln);
+    const lo=lout(ln),ltw=ents.reduce((s,e)=>s+twaste(e.w),0);
+    const pc=pctC(ltw,lo);
+    const open=S.eln[ln]!==false;
+    const vs=LC[ln].variants;
+    let vH=vs.length>1
+      ?`<div class="field"><label>Varian Aktif</label><div class="vpills">${vs.map(v=>`<button class="vp${sh.variant===v?" on":""}" onclick="setV('${ln}','${v}')">${v}</button>`).join("")}</div></div>`
+      :`<div class="field"><label>Varian</label><div class="fixed-tag">${vs[0]}</div></div>`;
+    let oH=vs.map(v=>{const pcs=ni(sh.obv[v])*ppb(v);return `<div class="field"><label>Output ${v} (Box)</label><div style="display:flex;gap:6px;align-items:center"><input type="number" min="0" class="num-in" value="${sh.obv[v]||""}" data-ln="${ln}" data-v="${v}" onblur="setOV(this)" onkeydown="if(event.key==='Enter'){this.blur();}" onfocus="this.select()" inputmode="numeric" placeholder="0"/><span class="pcs-tag" id="pcs-${ln}-${v.replace(/[^a-z0-9]/gi,'_')}" style="${pcs>0?'':'display:none'}">${pcs>0?pcs.toLocaleString()+' pcs':''}</span></div></div>`;}).join("");
+    const lspH=`<div class="lsp"><div class="lsp-hdr"><span class="lsp-badge">Line ${ln}</span><span class="lsp-sub">Output & QC semua mesin</span>${lo>0?`<span class="lsp-pcs">Total: <b>${lo.toLocaleString()} pcs</b></span>`:""}</div><div class="sec-lbl">📦 Output per Varian</div><div class="field-row">${vH}${oH}</div><div class="sec-lbl">🔬 Data QC</div><div class="field-row">${[["Sampel QC","sampelQC"],["SL QC","slQC"],["Hasil Heater","hasilHeater"],["Waste Filling","wasteFilling"]].map(([l,k])=>`<div class="field"><label>${l}</label><input type="number" min="0" class="num-in" value="${sh[k]||""}" oninput="setQC('${ln}','${k}',this.value)" placeholder="0"/></div>`).join("")}</div></div>`;
+    let mH="";
+    ents.forEach(e=>{
+      const tw=twaste(e.w),pc2=pctC(tw,lo),op=S.epch[e.id]!==false;
+      const rows=WT.map((t,ri)=>{const v=e.w[t]||"";return `<tr class="${ni(v)>0?"ract":""}"><td class="td-n">${t}</td><td class="td-v"><input type="number" min="0" class="wi" value="${v}" data-eid="${e.id}" data-ri="${ri}" oninput="sWaste('${e.id}','${t}',this.value)" onkeydown="wEnter(event,this)" onfocus="this.select()" placeholder="0"/></td></tr>`;}).join("");
+      const body=`<div class="waste-body"><div class="mtag">Mesin ${e.machine} · ${sh.variant}</div><table class="wt"><thead><tr><th class="th-n">Jenis Waste</th><th class="th-t">Total (pcs)</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="tfoot-r"><td class="td-n"><b>TOTAL WASTE</b></td><td class="td-v"><span class="tw-n">${tw.toLocaleString()}</span></td></tr></tfoot></table><div class="hint">↵ Enter = jenis waste berikutnya</div>${lo>0?`<div class="tw-sum"><span>Total ${e.machine}:</span><b style="color:${pc2}">${tw.toLocaleString()} pcs</b><span class="pct-pill" style="color:${pc2};background:${pc2}22;border:1px solid ${pc2}">${pctS(tw,lo)}</span></div>`:""}</div>`;
+      mH+=mkCard(`p-${e.id}`,`<span class="tag-m">${e.machine}</span><span class="tag-v">${sh.variant}</span>${tw>0?`<span class="tag-w">${tw.toLocaleString()} pcs`:""}`,`${lo>0?`<span class="pct-pill" style="color:${pc2};background:${pc2}22;border:1px solid ${pc2}">${pctS(tw,lo)}</span>`:""}<button class="btn-del" onclick="event.stopPropagation();remEnt('${e.id}')">✕</button>`,body,op,`togP('${e.id}')`);
     });
+    html+=mkCard(`l-${ln}`,`<span style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--acc)">Line ${ln}</span><span class="tag-v">${sh.variant}</span><span style="font-size:11px;color:var(--tx3)">${ents.length} mesin</span>`,`<span class="sstat">Output <b>${lo.toLocaleString()} pcs</b></span><span class="pct-pill" style="color:${pc};background:${pc}22;border:1px solid ${pc}">${pctS(ltw,lo)}</span>`,lspH+`<div style="border-top:1px solid var(--bdr)">${mH}</div>`,open,`togL('${ln}')`);
   });
-  const grandTotal=Object.values(km).reduce((s,k)=>s+k.total,0);
-
-  document.getElementById('content').innerHTML=`
-    <div class="ph"><div class="ph-left"><div class="title">Waste Kardus Analysis</div><div class="sub">Grand Total: ${grandTotal.toLocaleString()} pcs</div></div></div>
-    <div class="card">
-      <div class="card-h"><div class="card-title">📊 Kardus per Line</div></div>
-      <div class="card-b"><canvas id="ch-kard" style="max-height:200px"></canvas></div>
-    </div>
-    ${tblKardus(km,recs.length)}
-  `;
-  buildKardus('ch-kard',km);
+  el.innerHTML=html;
 }
 
-// ══════════════════════════════════════════════
-// CHART BUILDERS
-// ══════════════════════════════════════════════
-const CC=['#2563eb','#dc2626','#16a34a','#d97706','#7c3aed','#0891b2','#db2777','#65a30d','#c2410c','#0284c7'];
-const CA=CC.map(c=>c+'bb');
-
-function buildTrend(id,labs,od,wd){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[
-    {label:'Output',data:od,backgroundColor:'#2563eb1a',borderColor:'#2563eb',borderWidth:1.5,yAxisID:'y',order:2},
-    {label:'Waste',data:wd,type:'line',borderColor:'#dc2626',backgroundColor:'#dc262612',borderWidth:2,pointRadius:3,tension:.3,fill:true,yAxisID:'y2',order:1}
-  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
-    scales:{y:{position:'left',ticks:{font:{size:10}},grid:{color:'#f0f2f5'}},
-            y2:{position:'right',ticks:{font:{size:10},color:'#dc2626'},grid:{display:false}},
-            x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f0f2f5'}}}}});
-}
-function buildPct(id,labs,pd){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  const pc=pd.map(v=>v>5?'#dc2626':v>2?'#d97706':'#16a34a');
-  charts[id]=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[
-    {label:'% Waste',data:pd,borderColor:'#d97706',backgroundColor:'#d9770612',borderWidth:2,pointRadius:4,pointBackgroundColor:pc,tension:.3,fill:true},
-    {label:'Target 2%',data:labs.map(()=>2),borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
-    {label:'Batas 5%',data:labs.map(()=>5),borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
-  ]},options:{responsive:true,maintainAspectRatio:true,
-    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
-    scales:{y:{min:0,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'}},
-            x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f0f2f5'}}}}});
-}
-function buildDonut(id,labs,data){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'doughnut',data:{labels:labs,datasets:[{data,backgroundColor:CA.slice(0,3),borderColor:'#fff',borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}}}}});
-}
-function buildBar(id,labs,data){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[{label:'Waste',data,backgroundColor:CA,borderColor:CC,borderWidth:1}]},
-    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
-}
-function buildLine(id,labs,data,color,label){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[{label,data,borderColor:color,backgroundColor:color+'18',borderWidth:2,pointRadius:3,tension:.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},
-      scales:{x:{ticks:{font:{size:9},maxRotation:45},grid:{color:'#f0f2f5'}},y:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
-}
-function buildHBar(id,labs,data){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[{label:'Pcs',data,backgroundColor:CA,borderColor:CC,borderWidth:1}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}},y:{ticks:{font:{size:9}}}}}});
-}
-function buildPie(id,labs,data){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'pie',data:{labels:labs,datasets:[{data,backgroundColor:CA,borderColor:'#fff',borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10,padding:5}}}}});
-}
-function buildStacked(id,labs,cd,od){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[
-    {label:'Close',data:cd,backgroundColor:'#16a34abb',borderColor:'#16a34a',borderWidth:1,stack:'s'},
-    {label:'Open', data:od,backgroundColor:'#d97706bb',borderColor:'#d97706',borderWidth:1,stack:'s'}
-  ]},options:{responsive:true,maintainAspectRatio:true,
-    plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:10}}},
-    scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
-}
-function buildGFVar(id,gfv){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  charts[id]=new Chart(ctx,{type:'bar',data:{labels:GFV,datasets:[
-    {label:'Close',data:GFV.map(v=>gfv[v]?.c||0),backgroundColor:'#16a34abb',borderColor:'#16a34a',borderWidth:1,stack:'v'},
-    {label:'Open', data:GFV.map(v=>gfv[v]?.o||0),backgroundColor:'#d97706bb',borderColor:'#d97706',borderWidth:1,stack:'v'}
-  ]},options:{responsive:true,maintainAspectRatio:true,
-    plugins:{legend:{labels:{font:{size:11},boxWidth:10}}},
-    scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
-}
-function buildKardus(id,km){
-  destroyChart(id);
-  const ctx=document.getElementById(id)?.getContext('2d'); if(!ctx) return;
-  const vals=Object.values(km);
-  charts[id]=new Chart(ctx,{type:'bar',data:{labels:vals.map(k=>k.l),datasets:[{label:'Total',data:vals.map(k=>k.total),backgroundColor:vals.map(k=>k.total>k.t?'#dc2626bb':'#16a34abb'),borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
-}
-
-// ══════════════════════════════════════════════
-// TABLE RENDERERS
-// ══════════════════════════════════════════════
-function tblLine(lm){
-  const rows=Object.entries(lm).sort((a,b)=>b[1].w-a[1].w).map(([line,d])=>{
-    const p=d.out>0?(d.w/d.out*100).toFixed(2):'—';
-    return `<tr><td><span class="badge b-blue">${line}</span></td><td class="r m">${d.out.toLocaleString()}</td><td class="r m">${d.w.toLocaleString()}</td><td>${pBadge(p)}</td></tr>`;
-  }).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:16px">—</td></tr>';
-  return `<div class="card"><div class="card-h"><div class="card-title">🏭 Performa per Line</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Line</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-function tblShift(recs){
-  const rows=['1','2','3'].map(s=>{
-    const r=recs.filter(x=>x.header?.shift===s), a=agg(r);
-    return `<tr><td><span class="badge b-blue">Shift ${s}</span></td><td class="r m">${r.length}</td><td class="r m">${a.out.toLocaleString()}</td><td class="r m">${a.waste.toLocaleString()}</td><td>${pBadge(a.pct)}</td><td class="r m">${(a.gfc+a.gfo).toLocaleString()}</td></tr>`;
-  }).join('');
-  return `<div class="card"><div class="card-h"><div class="card-title">🕐 per Shift</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Shift</th><th style="text-align:right">Sesi</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-function tblWasteType(sorted){
-  const max=sorted[0]?.v||1;
-  const rows=sorted.map(({t,v})=>`<tr><td style="font-size:12px">${t}</td><td class="r m">${v.toLocaleString()}</td><td style="min-width:100px"><div class="pbar-bg"><div class="pbar-fill" style="width:${(v/max*100).toFixed(0)}%;background:var(--red)"></div></div></td></tr>`).join('');
-  return `<div class="card"><div class="card-h"><div class="card-title">📋 Detail Jenis Waste</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Jenis</th><th style="text-align:right">Total</th><th>Proporsi</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-function tblMachine(mm){
-  const rows=Object.entries(mm).sort((a,b)=>b[1].w-a[1].w).slice(0,20).map(([m,d])=>`<tr>
-    <td><span class="badge b-gray">${m}</span></td>
-    <td><span class="badge b-blue">${d.line}</span></td>
-    <td class="r m">${d.w.toLocaleString()}</td>
-    <td class="r m">${d.n}</td>
-    <td class="r m">${d.n>0?(d.w/d.n).toFixed(0):0}</td>
-  </tr>`).join('');
-  return `<div class="card"><div class="card-h"><div class="card-title">⚙️ Top 20 Mesin</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Mesin</th><th>Line</th><th style="text-align:right">Total</th><th style="text-align:right">Sesi</th><th style="text-align:right">Avg</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-function tblGF(gfv){
-  const rows=GFV.map(v=>{const d=gfv[v],tot=d.c+d.o,p=tot>0?((d.c/tot)*100).toFixed(0):0;
-    return `<tr><td><span class="badge b-pur">${v}</span></td><td class="r m">${d.c.toLocaleString()}</td><td class="r m">${d.o.toLocaleString()}</td><td class="r m">${tot.toLocaleString()}</td><td><span class="badge ${p>=80?'b-grn':p>=50?'b-warn':'b-red'}">${p}%</span></td></tr>`;
-  }).join('');
-  return `<div class="card"><div class="card-h"><div class="card-title">📋 GF per Varian</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Varian</th><th style="text-align:right">Close</th><th style="text-align:right">Open</th><th style="text-align:right">Total</th><th>% Close</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-function tblKardus(km,n){
-  const rows=Object.values(km).map(k=>{
-    const avg=n>0?(k.total/n).toFixed(1):0;
-    const or=n>0?((k.over/n)*100).toFixed(0):0;
-    return `<tr><td><span class="badge b-gray">${k.l}</span></td><td><span class="badge b-blue">${k.v}</span></td><td class="r m">${k.total.toLocaleString()}</td><td class="r m">${k.t}</td><td class="r m">${avg}</td><td><span class="badge ${or>50?'b-red':or>20?'b-warn':'b-grn'}">${or}%</span></td></tr>`;
-  }).join('');
-  return `<div class="card"><div class="card-h"><div class="card-title">📋 Kardus per Line</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Line</th><th>Varian</th><th style="text-align:right">Total</th><th style="text-align:right">Target</th><th style="text-align:right">Avg/Sesi</th><th>% Over</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-}
-
-// ══════════════════════════════════════════════
-// MANUAL INPUT
-// ══════════════════════════════════════════════
-let MI={header:{group:'A',date:'',shift:'1'},lines:[],ls:{},entries:[],gf:{},kardus:{}};
-
-function renderManual(){
-  MI.header.date=MI.header.date||fmt(new Date());
-  document.getElementById('content').innerHTML=`
-    <div class="ph">
-      <div class="ph-left"><div class="title">✏️ Input Manual</div><div class="sub">Entry data dari form kertas</div></div>
-      <div class="ph-right">
-        <button class="btn btn-sm" onclick="resetMI()">↺ Reset</button>
-        <button class="btn btn-g" onclick="saveMI()">💾 Simpan ke Dashboard</button>
-      </div>
-    </div>
-    <div class="banner ban-info">ℹ️ Data disimpan di browser dan digabung bersama data Drive saat melihat chart.</div>
-
-    <!-- HEADER -->
-    <div class="card">
-      <div class="card-h"><div class="card-title">📋 Header Sesi</div></div>
-      <div class="card-b">
-        <div class="fr">
-          <div class="fc"><label class="fl">Grup</label>
-            <select class="fi" id="mi-grp" onchange="MI.header.group=this.value">
-              <option>A</option><option>B</option><option>C</option>
-            </select>
-          </div>
-          <div class="fc"><label class="fl">Tanggal</label>
-            <input type="date" class="fi fi-mono" id="mi-date" value="${MI.header.date}" onchange="MI.header.date=this.value"/>
-          </div>
-          <div class="fc" style="min-width:180px"><label class="fl">Shift</label>
-            <select class="fi" id="mi-shift" onchange="MI.header.shift=this.value">
-              <option value="1">Shift 1 — 06:00–14:00</option>
-              <option value="2">Shift 2 — 14:00–22:00</option>
-              <option value="3">Shift 3 — 22:00–06:00</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="fl">Line Aktif</label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-            ${ALL_LINES.map(l=>`<label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--bdr);border-radius:6px;background:var(--s2);font-size:12px;cursor:pointer;transition:.12s" id="mi-lbl-${l}">
-              <input type="checkbox" id="mi-cb-${l}" ${MI.lines.includes(l)?'checked':''} onchange="toggleMILine('${l}')"/> ${l}
-            </label>`).join('')}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- LINE SECTIONS -->
-    <div id="mi-lines"></div>
-
-    <!-- GF -->
-    <div class="card">
-      <div class="card-h"><div class="card-title">⚠️ Gagal Filling</div></div>
-      <div class="card-b">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">
-          ${GFV.map(v=>`<div style="background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px">
-            <div style="font-size:11px;font-weight:600;margin-bottom:7px">${v}</div>
-            <div class="fr" style="margin-bottom:0;gap:6px">
-              <div class="fc"><label class="fl">Close</label><input type="number" min="0" class="fi fi-num" placeholder="0" value="${MI.gf[v]?.close||''}" onchange="MI.gf['${v}']=(MI.gf['${v}']||{});MI.gf['${v}'].close=this.value"/></div>
-              <div class="fc"><label class="fl">Open</label><input type="number" min="0" class="fi fi-num" placeholder="0" value="${MI.gf[v]?.open||''}" onchange="MI.gf['${v}']=(MI.gf['${v}']||{});MI.gf['${v}'].open=this.value"/></div>
-            </div>
-          </div>`).join('')}
-        </div>
-      </div>
-    </div>
-
-    <!-- KARDUS -->
-    <div class="card">
-      <div class="card-h"><div class="card-title">📋 Waste Kardus</div></div>
-      <div class="card-b">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
-          ${KL.map(k=>`<div style="background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
-              <span style="font-size:11px;font-weight:600">${k.l}</span>
-              <span class="badge b-blue" style="font-size:9px">${k.v}</span>
-            </div>
-            <div class="fc"><label class="fl">Total (target ${k.t})</label>
-              <input type="number" min="0" class="fi fi-num" placeholder="0" value="${MI.kardus[k.id]?.total||''}" onchange="if(!MI.kardus['${k.id}'])MI.kardus['${k.id}']={total:'',causes:{}};MI.kardus['${k.id}'].total=this.value"/>
-            </div>
-          </div>`).join('')}
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:8px;justify-content:flex-end;padding-bottom:24px">
-      <button class="btn" onclick="resetMI()">↺ Reset Form</button>
-      <button class="btn btn-p" onclick="saveMI()">💾 Simpan Sesi ke Dashboard</button>
-    </div>
-  `;
-  // restore select values
-  document.getElementById('mi-grp').value=MI.header.group;
-  document.getElementById('mi-shift').value=MI.header.shift;
-  renderMILines();
-}
-
-function toggleMILine(line){
-  const checked=document.getElementById(`mi-cb-${line}`).checked;
-  if(checked){
-    if(!MI.lines.includes(line)) MI.lines.push(line);
-    if(!MI.ls[line]){ const obv={}; LC[line].v.forEach(v=>{obv[v]=''}); MI.ls[line]={variant:LC[line].v[0],outputByVariant:obv}; }
-    LC[line].m.forEach(m=>{ if(!MI.entries.find(e=>e.line===line&&e.machine===m)){ const w={}; WT.forEach(t=>{w[t]=''}); MI.entries.push({id:`${line}-${m}`,line,machine:m,waste:w}); }});
-  } else {
-    MI.lines=MI.lines.filter(l=>l!==line);
-    MI.entries=MI.entries.filter(e=>e.line!==line);
-    delete MI.ls[line];
+function togL(ln){S.eln[ln]=!S.eln[ln];sched();rPouch();}
+function togP(id){S.epch[id]=S.epch[id]===false?true:false;sched();rPouch();}
+function setV(ln,v){S.ls[ln].variant=v;sched();renderAll();}
+function setOV(inp){
+  // inp is the input element (called from onblur)
+  const ln=inp.dataset.ln, v=inp.dataset.v, val=inp.value;
+  if(!S.ls[ln]) return;
+  S.ls[ln].obv[v]=val;
+  sched();
+  // Update pcs-tag in-place without full re-render
+  const key=v.replace(/[^a-z0-9]/gi,'_');
+  const tag=document.getElementById(`pcs-${ln}-${key}`);
+  if(tag){
+    const pcs=ni(val)*ppb(v);
+    if(pcs>0){tag.textContent=pcs.toLocaleString()+' pcs';tag.style.display='';}
+    else{tag.style.display='none';}
   }
-  renderMILines();
+  // Update LSP total pcs header
+  const lo=lout(ln);
+  const lspPcs=document.querySelector(`#card-l-${ln} .lsp-pcs`);
+  if(lo>0){
+    if(lspPcs){lspPcs.innerHTML=`Total: <b>${lo.toLocaleString()} pcs</b>`;}
+    else{
+      const lspHdr=document.querySelector(`#card-l-${ln} .lsp-hdr`);
+      if(lspHdr){const sp=document.createElement('span');sp.className='lsp-pcs';sp.innerHTML=`Total: <b>${lo.toLocaleString()} pcs</b>`;lspHdr.appendChild(sp);}
+    }
+  } else if(lspPcs){lspPcs.remove();}
+  // Update card header output stat
+  const cardHdr=document.querySelector(`#card-l-${ln} .card-head > .chr .sstat`);
+  if(cardHdr){
+    const ltw=S.ent.filter(e=>e.line===ln).reduce((s,e)=>s+twaste(e.w),0);
+    const pc=pctC(ltw,lo);
+    cardHdr.innerHTML=`Output <b>${lo.toLocaleString()} pcs</b>`;
+    const hPill=document.querySelector(`#card-l-${ln} .card-head > .chr .pct-pill`);
+    if(hPill){hPill.textContent=pctS(ltw,lo);hPill.style.color=pc;hPill.style.background=pc+'22';hPill.style.border=`1px solid ${pc}`;}
+  }
+  updStats();
+}
+function setQC(ln,k,val){S.ls[ln][k]=val;sched();updStats();}
+function sWaste(id,t,val){
+  const e=S.ent.find(x=>x.id===id);if(!e)return;
+  e.w[t]=val;sched();
+  const tw=twaste(e.w),lo=lout(e.line),pc=pctC(tw,lo);
+  const card=document.getElementById(`card-p-${id}`);
+  if(card){
+    const twn=card.querySelector(".tw-n");if(twn)twn.textContent=tw.toLocaleString();
+    const pill=card.querySelector(".tw-sum .pct-pill");
+    if(pill){pill.textContent=pctS(tw,lo);pill.style.color=pc;pill.style.background=pc+"22";pill.style.border=`1px solid ${pc}`;}
+    const twb=card.querySelector(".tw-sum b");if(twb){twb.textContent=tw.toLocaleString()+" pcs";twb.style.color=pc;}
+    card.querySelectorAll("input.wi").forEach(i=>{const r=i.closest("tr");if(r)r.className=ni(i.value)>0?"ract":"";});
+    const tw2=card.querySelector(".tag-w");
+    if(tw>0){if(tw2)tw2.textContent=tw.toLocaleString()+" pcs";else{const h=card.querySelector(".chl");const sp=document.createElement("span");sp.className="tag-w";sp.textContent=tw.toLocaleString()+" pcs";h.appendChild(sp);}}else if(tw2)tw2.remove();
+  }
+  updStats();
+}
+function remEnt(id){S.ent=S.ent.filter(e=>e.id!==id);sched();renderAll();}
+function wEnter(ev,inp){
+  if(ev.key!=="Enter")return;ev.preventDefault();
+  const ri=parseInt(inp.dataset.ri),eid=inp.dataset.eid;
+  const card=document.getElementById(`card-p-${eid}`);if(!card)return;
+  const ins=Array.from(card.querySelectorAll("input.wi")),nx=ins[ri+1];
+  if(nx){nx.focus();nx.select();}
+  else{
+    const cards=Array.from(document.querySelectorAll('[id^="card-p-"]'));
+    const idx=cards.indexOf(card),nc=cards[idx+1];
+    if(nc){const cid=nc.id.replace("card-p-","");S.epch[cid]=true;rPouch();setTimeout(()=>{const f=document.getElementById(`card-p-${cid}`)?.querySelector("input.wi");f?.focus();f?.select();},60);}
+  }
 }
 
-function renderMILines(){
-  const el=document.getElementById('mi-lines'); if(!el) return;
-  if(!MI.lines.length){el.innerHTML='';return;}
-  el.innerHTML=MI.lines.map(line=>{
-    const sh=MI.ls[line]; if(!sh) return '';
-    const outInputs=LC[line].v.map(v=>`<div class="fc" style="min-width:120px"><label class="fl">Output ${v} (Box)</label><input type="number" min="0" class="fi fi-num" placeholder="0" value="${sh.outputByVariant[v]||''}" onchange="MI.ls['${line}'].outputByVariant['${v}']=this.value"/></div>`).join('');
-    const machSecs=MI.entries.filter(e=>e.line===line).map(e=>`
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--bdr)">Mesin ${e.machine}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-          ${WT.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--s2);border:1px solid var(--bdr);border-radius:5px">
-            <span style="flex:1;font-size:10px;color:var(--tx2)" title="${t}">${t.length>28?t.substring(0,28)+'…':t}</span>
-            <input type="number" min="0" style="width:64px;text-align:right;font-family:var(--mono);font-size:11px;border:1px solid var(--bdr);background:var(--surface);border-radius:4px;padding:3px 5px;height:26px" placeholder="0" value="${e.waste[t]||''}" onchange="(MI.entries.find(x=>x.line==='${line}'&&x.machine==='${e.machine}')?.waste||{})['${t}']=this.value"/>
-          </div>`).join('')}
-        </div>
-      </div>`).join('');
-    return `<div class="card">
-      <div class="card-h"><div class="card-title">🏭 Line ${line}</div><div class="card-meta">${LC[line].m.join(', ')}</div></div>
-      <div class="card-b">
-        <div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);margin-bottom:8px">📦 Output</div><div class="fr">${outInputs}</div></div>
-        <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);margin-bottom:8px">♻️ Waste per Mesin</div>${machSecs}</div>
-      </div>
+// ═══════════════════════════════════════════════════
+// TAB: COUNTER
+// KEY FIX: No re-render on input — only update state.
+// Re-render only updates the computed summary row.
+// ═══════════════════════════════════════════════════
+function rCounter(){
+  const el=document.getElementById("tab-counter");
+  const al=[...new Set(S.ent.map(e=>e.line))];
+  if(!al.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🔢</div><div class="empty-title">Belum ada line aktif</div><div class="empty-sub">Aktifkan line di atas</div></div>`;return;}
+  let html="";
+  al.forEach(ln=>{
+    const sh=S.ls[ln]||emLS(ln);
+    const variant=sh.variant,pb=ppb(variant);
+    const ms=S.ctr[ln]||emCtr(ln);
+    const open=S.ectr[ln]!==false;
+    // computed values
+    const totC=ms.reduce((s,m)=>s+ni(m.counter),0);
+    const totFG=ms.reduce((s,m)=>s+ni(m.fg),0);
+    const box=totC/pb;
+    const selBox=box-totFG;
+    const selPcs=Math.round(selBox*pb);
+    const sc=selBox<0?"#f85149":selBox===0?"#8b949e":"#3fb950";
+    const rows=ms.map((m,mi)=>`
+      <tr id="ctr-row-${ln}-${mi}">
+        <td><span class="tag-m">${m.m}</span></td>
+        <td><input type="number" min="0" class="wi"
+          value="${m.counter||""}"
+          data-line="${ln}" data-mi="${mi}" data-field="counter"
+          onblur="ctrBlur(this)"
+          onkeydown="ctrKey(event,this)"
+          onfocus="this.select()" placeholder="0" inputmode="numeric"/></td>
+        <td><input type="number" min="0" class="wi"
+          value="${m.fg||""}"
+          data-line="${ln}" data-mi="${mi}" data-field="fg"
+          onblur="ctrBlur(this)"
+          onkeydown="ctrKey(event,this)"
+          onfocus="this.select()" placeholder="0" inputmode="numeric"/></td>
+      </tr>`).join("");
+    const body=`
+    <div class="ctr-body">
+      <table class="ct">
+        <thead><tr>
+          <th>Mesin</th>
+          <th class="th-in">Counter (pcs)</th>
+          <th class="th-in">FG (box)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot id="ctr-foot-${ln}">
+          ${ctrFootHTML(ln,totC,box,totFG,selBox,selPcs,sc,pb)}
+        </tfoot>
+      </table>
+      <div class="ctr-hint">↵ Enter: Counter → FG → mesin berikutnya &nbsp;|&nbsp; isi angka lengkap lalu pindah ke kolom berikutnya</div>
     </div>`;
-  }).join('');
+    const hR=`<span class="sstat">Counter: <b id="ctr-hd-c-${ln}">${totC.toLocaleString()}</b></span><span class="sstat">Box: <b id="ctr-hd-b-${ln}" style="color:var(--grn)">${box.toFixed(2)}</b></span><span class="sstat" style="color:${sc}" id="ctr-hd-s-${ln}">Selisih: <b>${selPcs.toLocaleString()} pcs</b></span>`;
+    html+=mkCard(`ctr-${ln}`,`<span style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--acc)">Line ${ln}</span><span class="tag-v">${variant}</span><span style="font-size:11px;color:var(--tx3)">${pb} pcs/box</span>`,hR,body,open,`togCtr('${ln}')`);
+  });
+  el.innerHTML=html;
 }
 
-function saveMI(){
-  const s={savedAt:new Date().toISOString(),isManual:true,header:{...MI.header},lineShared:JSON.parse(JSON.stringify(MI.ls)),entries:JSON.parse(JSON.stringify(MI.entries)),gf:JSON.parse(JSON.stringify(MI.gf)),kardus:JSON.parse(JSON.stringify(MI.kardus))};
-  const dup=localSessions.findIndex(x=>x.header.group===s.header.group&&x.header.date===s.header.date&&x.header.shift===s.header.shift);
-  if(dup>=0){
-    if(!confirm(`Sesi Grup ${s.header.group} Shift ${s.header.shift} tgl ${s.header.date} sudah ada. Timpa?`)) return;
-    localSessions[dup]=s;
-  } else { localSessions.push(s); }
-  localStorage.setItem('wh_manual',JSON.stringify(localSessions));
-  document.getElementById('badge-manual').style.display='inline';
-  mergeAll();
-  showToast('✓ Sesi tersimpan','ok');
-  resetMI();
+function ctrFootHTML(ln,totC,box,totFG,selBox,selPcs,sc,pb){
+  return `<tr class="tfoot-r">
+    <td style="text-align:left;padding:6px 10px">TOTAL LINE ${ln}</td>
+    <td class="td-ro">${totC.toLocaleString()}</td>
+    <td class="td-m">${totFG}</td>
+  </tr>
+  <tr class="tfoot-r">
+    <td style="text-align:left;padding:6px 10px;color:var(--tx2);font-size:11px">Box = Counter ÷ ${pb}</td>
+    <td class="td-ro" colspan="2">${box.toFixed(3)} box</td>
+  </tr>
+  <tr class="tfoot-r">
+    <td style="text-align:left;padding:6px 10px;color:var(--tx2);font-size:11px">Selisih Box = Box − FG</td>
+    <td class="td-sel" colspan="2" style="color:${sc}">${selBox.toFixed(3)}</td>
+  </tr>
+  <tr class="tfoot-r">
+    <td style="text-align:left;padding:6px 10px;color:var(--tx2);font-size:11px">Selisih Pcs = Selisih Box × ${pb}</td>
+    <td class="td-sel" colspan="2" style="color:${sc}"><b>${selPcs.toLocaleString()}</b></td>
+  </tr>`;
 }
 
-function resetMI(){
-  MI={header:{group:'A',date:fmt(new Date()),shift:'1'},lines:[],ls:{},entries:[],gf:{},kardus:{}};
-  renderManual();
+// Called on blur — saves to state and updates only the summary rows
+function ctrBlur(inp){
+  const ln=inp.dataset.line, mi=parseInt(inp.dataset.mi), field=inp.dataset.field;
+  if(!S.ctr[ln])S.ctr[ln]=emCtr(ln);
+  S.ctr[ln][mi][field]=inp.value;
+  sched();
+  // update only footer, not whole table
+  const sh=S.ls[ln]||emLS(ln);
+  const pb=ppb(sh.variant);
+  const ms=S.ctr[ln];
+  const totC=ms.reduce((s,m)=>s+ni(m.counter),0);
+  const totFG=ms.reduce((s,m)=>s+ni(m.fg),0);
+  const box=totC/pb, selBox=box-totFG, selPcs=Math.round(selBox*pb);
+  const sc=selBox<0?"#f85149":selBox===0?"#8b949e":"#3fb950";
+  const foot=document.getElementById(`ctr-foot-${ln}`);
+  if(foot)foot.innerHTML=ctrFootHTML(ln,totC,box,totFG,selBox,selPcs,sc,pb);
+  // update card header summary
+  const hc=document.getElementById(`ctr-hd-c-${ln}`);if(hc)hc.textContent=totC.toLocaleString();
+  const hb=document.getElementById(`ctr-hd-b-${ln}`);if(hb)hb.textContent=box.toFixed(2);
+  const hs=document.getElementById(`ctr-hd-s-${ln}`);
+  if(hs){hs.style.color=sc;hs.innerHTML=`Selisih: <b>${selPcs.toLocaleString()} pcs</b>`;}
 }
 
-// ══════════════════════════════════════════════
-// SESSIONS VIEW
-// ══════════════════════════════════════════════
-function renderSessions(){
-  const all=[
-    ...localSessions.map(s=>({...s,_src:'manual'})),
-    ...uploadedRecords.map(s=>({...s,_src:'upload'})),
-    ...driveRecords.map(s=>({...s,_src:'drive'}))
-  ].sort((a,b)=>(b.header?.date||'')>(a.header?.date||'')?1:-1);
+function ctrKey(ev,inp){
+  if(ev.key!=="Enter")return;ev.preventDefault();
+  const ln=inp.dataset.line, mi=parseInt(inp.dataset.mi), field=inp.dataset.field;
+  // Save current value first
+  ctrBlur(inp);
+  if(field==="counter"){
+    // move to FG of same machine
+    const next=document.querySelector(`[data-line="${ln}"][data-mi="${mi}"][data-field="fg"]`);
+    next?.focus();next?.select();
+  } else {
+    // move to counter of next machine
+    const nextMi=mi+1;
+    const next=document.querySelector(`[data-line="${ln}"][data-mi="${nextMi}"][data-field="counter"]`);
+    if(next){next.focus();next.select();}
+    else{
+      // move to next line's first counter
+      const al=[...new Set(S.ent.map(e=>e.line))];
+      const li=al.indexOf(ln), nl=al[li+1];
+      if(nl){
+        S.ectr[nl]=true;rCounter();
+        setTimeout(()=>{const f=document.querySelector(`[data-line="${nl}"][data-mi="0"][data-field="counter"]`);f?.focus();f?.select();},60);
+      }
+    }
+  }
+}
 
-  const rows=all.map((s,i)=>{
-    const a=agg([s]);
-    const srcBadge={manual:'b-warn',upload:'b-pur',drive:'b-blue'}[s._src];
-    const srcLabel={manual:'Manual',upload:'Upload',drive:'Drive'}[s._src];
-    const isDeletable=s._src==='manual';
-    return `<tr>
-      <td><span class="badge ${srcBadge}">${srcLabel}</span></td>
-      <td class="m">${s.header?.date||'—'}</td>
-      <td><span class="badge b-gray">Grp ${s.header?.group||'—'}</span></td>
-      <td><span class="badge b-gray">Sft ${s.header?.shift||'—'}</span></td>
-      <td class="r m">${a.out.toLocaleString()}</td>
-      <td class="r m">${a.waste.toLocaleString()}</td>
-      <td>${pBadge(a.pct)}</td>
-      <td class="r m">${(a.gfc+a.gfo).toLocaleString()}</td>
-      <td>${isDeletable?`<button class="btn btn-xs btn-r" onclick="delLocal(${localSessions.indexOf(s)})">Hapus</button>`:'—'}</td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--tx3)">Belum ada sesi</td></tr>';
+function togCtr(ln){S.ectr[ln]=S.ectr[ln]===false?true:false;sched();rCounter();}
 
-  document.getElementById('content').innerHTML=`
-    <div class="ph">
-      <div class="ph-left"><div class="title">🗃️ Semua Sesi</div><div class="sub">${localSessions.length} manual · ${uploadedRecords.length} upload · ${driveRecords.length} Drive</div></div>
-      <div class="ph-right">${localSessions.length?`<button class="btn btn-r btn-sm" onclick="clearLocal()">🗑 Hapus Semua Manual</button>`:''}</div>
+// ═══════════════════════════════════════════════════
+// TAB: GAGAL FILLING
+// ═══════════════════════════════════════════════════
+function rGF(){
+  const el=document.getElementById("tab-gf");
+  const tc=GFV.reduce((s,v)=>s+ni(S.gf[v]?.cl),0);
+  const to=GFV.reduce((s,v)=>s+ni(S.gf[v]?.op),0);
+  const ta=tc+to;
+  el.innerHTML=`
+  <div class="gf-hdr">
+    <span class="section-title">Data Pengerjaan Gagal Filling</span>
+    <div style="display:flex;gap:10px">
+      <div class="kpi-sm"><div class="kpi-sm-v" style="color:var(--grn)">${tc.toLocaleString()}</div><div class="kpi-sm-l">Total Close</div></div>
+      <div class="kpi-sm"><div class="kpi-sm-v" style="color:var(--warn)">${to.toLocaleString()}</div><div class="kpi-sm-l">Total Open</div></div>
+      <div class="kpi-sm"><div class="kpi-sm-v">${ta.toLocaleString()}</div><div class="kpi-sm-l">Grand Total</div></div>
     </div>
-    <div class="card"><div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Sumber</th><th>Tanggal</th><th>Grup</th><th>Shift</th><th style="text-align:right">Output</th><th style="text-align:right">Waste</th><th>%</th><th style="text-align:right">GF</th><th>Aksi</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div></div>`;
+  </div>
+  <div style="overflow-x:auto"><table class="gft">
+    <thead><tr><th style="text-align:left">Varian</th><th class="th-cl">Close (pcs)</th><th class="th-op">Open (pcs)</th><th>Total</th></tr></thead>
+    <tbody>${GFV.map((v,vi)=>{const c=ni(S.gf[v]?.cl),o=ni(S.gf[v]?.op),t=c+o;return `<tr class="${(c>0||o>0)?"ract":""}"><td><span class="tag-v">${v}</span></td><td><input type="number" min="0" class="wi" value="${S.gf[v]?.cl||""}" data-gfv="${v}" data-gff="cl" onblur="gfBlur(this)" onkeydown="gfKey(event,${vi},'cl')" onfocus="this.select()" placeholder="0" inputmode="numeric"/></td><td><input type="number" min="0" class="wi" value="${S.gf[v]?.op||""}" data-gfv="${v}" data-gff="op" onblur="gfBlur(this)" onkeydown="gfKey(event,${vi},'op')" onfocus="this.select()" placeholder="0" inputmode="numeric"/></td><td class="td-m"><b>${t>0?t:"—"}</b></td></tr>`;}).join("")}</tbody>
+    <tfoot><tr class="tfoot-r"><td><b>TOTAL</b></td><td class="td-m" style="color:var(--grn)"><b>${tc.toLocaleString()}</b></td><td class="td-m" style="color:var(--warn)"><b>${to.toLocaleString()}</b></td><td class="td-m"><b>${ta.toLocaleString()}</b></td></tr></tfoot>
+  </table></div>
+  <div class="hint" style="margin-top:8px">↵ Enter: Close → Open → varian berikutnya</div>`;
+}
+function gfBlur(inp){
+  const v=inp.dataset.gfv, f=inp.dataset.gff;
+  if(!S.gf[v])S.gf[v]={cl:"",op:""};
+  S.gf[v][f]=inp.value;sched();
+  // update row total without re-render
+  const c=ni(S.gf[v].cl),o=ni(S.gf[v].op);
+  const row=inp.closest("tr");if(row){row.className=(c>0||o>0)?"ract":"";const tds=row.querySelectorAll("td");if(tds[3])tds[3].innerHTML=`<b>${(c+o)>0?c+o:"—"}</b>`;}
+  updStats();
+}
+function gfKey(ev,vi,f){
+  if(ev.key!=="Enter")return;ev.preventDefault();
+  const inp=ev.target;gfBlur(inp);
+  if(f==="cl"){const nx=document.querySelector(`[data-gfv="${GFV[vi]}"][data-gff="op"]`);nx?.focus();nx?.select();}
+  else{const nx=document.querySelector(`[data-gfv="${GFV[vi+1]}"][data-gff="cl"]`);nx?.focus();nx?.select();}
 }
 
-function delLocal(idx){
-  if(!confirm('Hapus sesi ini?')) return;
-  localSessions.splice(idx,1);
-  localStorage.setItem('wh_manual',JSON.stringify(localSessions));
-  if(!localSessions.length) document.getElementById('badge-manual').style.display='none';
-  mergeAll(); showToast('Sesi dihapus','warn'); renderSessions();
-}
-function clearLocal(){
-  if(!confirm('Hapus semua sesi manual?')) return;
-  localSessions=[]; localStorage.setItem('wh_manual','[]');
-  document.getElementById('badge-manual').style.display='none';
-  mergeAll(); showToast('Semua manual dihapus','warn'); renderSessions();
-}
-
-// ══════════════════════════════════════════════
-// EXPORT
-// ══════════════════════════════════════════════
-function exportCSV(){
-  const filtered=filterByDate(allRecords);
-  const rows=[['Tanggal','Grup','Shift','Line','Output(Pcs)','Waste(Pcs)','%Waste','GFClose','GFOpen','Kardus','Sumber']];
-  filtered.forEach(r=>{
-    const lines=Object.keys(r.lineShared||{});
-    const src=r.isManual?'Manual':'Drive';
-    (lines.length?lines:['—']).forEach(l=>{
-      const op=l==='—'?0:lineOutput(r.lineShared,l);
-      const tw=(r.entries||[]).filter(e=>e.line===l||l==='—').reduce((s,e)=>s+totalWaste(e.waste||{}),0);
-      rows.push([r.header?.date,r.header?.group,r.header?.shift,l,op,tw,op>0?(tw/op*100).toFixed(2):0,
-        GFV.reduce((s,v)=>s+ni(r.gf?.[v]?.close),0),
-        GFV.reduce((s,v)=>s+ni(r.gf?.[v]?.open),0),
-        KL.reduce((s,k)=>s+ni(r.kardus?.[k.id]?.total),0),src]);
-    });
+// ═══════════════════════════════════════════════════
+// TAB: KARDUS
+// ═══════════════════════════════════════════════════
+function rKardus(){
+  const el=document.getElementById("tab-kardus");
+  const gt=KL.reduce((s,k)=>s+ni((S.kd[k.id]||emKL()).tot),0);
+  const sumR=KL.map(k=>{const d=S.kd[k.id]||emKL(),t=ni(d.tot),ok=t<=k.tg;return `<tr><td><span class="tag-m">${k.lb}</span></td><td><span class="tag-v">${k.vr}</span></td><td style="font-family:var(--mono)"><b>${t}</b></td><td style="font-family:var(--mono)">${k.tg}</td><td><span class="${ok?"st-ok":"st-ov"}">${ok?"✓ OK":"✗ OVER"}</span></td></tr>`;}).join("");
+  let dH="";
+  KL.forEach((k,li)=>{
+    const d=S.kd[k.id]||emKL(),t=ni(d.tot);
+    const ct=KC.reduce((s,c)=>s+ni(d.causes[c]),0);
+    const ok=t<=k.tg,open=S.ekd[k.id]!==false;
+    const cRows=KC.map((c,ci)=>`<div class="cause-row"><span class="cause-lbl">${c}</span><input type="number" min="0" class="wi" value="${d.causes[c]||""}" data-kid="${k.id}" data-cause="${c}" data-ci="${ci}" data-li="${li}" onblur="kdCauseBlur(this)" onkeydown="kdKey(event,this)" onfocus="this.select()" placeholder="0" inputmode="numeric"/></div>`).join("");
+    const body=`<div class="kd-body"><div class="ktot-row"><div class="field"><label>Total Waste Kardus (pcs)</label><input type="number" min="0" class="num-in-lg" value="${d.tot||""}" data-kid="${k.id}" onblur="kdTotBlur(this)" onfocus="this.select()" placeholder="0" inputmode="numeric"/></div>${ct>0&&ct!==t?`<div class="cause-mm">⚠ Sum penyebab: ${ct} ≠ total: ${t}</div>`:""}</div><div class="causes-grid"><div class="causes-ttl">Breakdown Penyebab</div>${cRows}</div></div>`;
+    dH+=mkCard(`kd-${k.id}`,`<span style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--acc)">${k.lb}</span><span class="tag-v">${k.vr}</span>`,`<span class="sstat">Target: <b>${k.tg}</b></span><span class="${ok?"st-ok":"st-ov"}">${ok?"✓ OK":"✗ OVER"}</span>`,body,open,`togKd('${k.id}')`);
   });
-  const csv=rows.map(r=>r.join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=`WasteHub_${fmt(new Date())}.csv`;
-  a.click();
-  showToast('✓ CSV exported','ok');
+  el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px"><span class="section-title">Waste Kardus Pershift</span><div class="kpi-sm"><div class="kpi-sm-v">${gt.toLocaleString()}</div><div class="kpi-sm-l">Grand Total</div></div></div><div class="ks-wrap"><div class="ks-title">📊 Summary per Shift</div><div style="overflow-x:auto"><table class="kst"><thead><tr><th>Line</th><th>Varian</th><th>Total</th><th>Target</th><th>Status</th></tr></thead><tbody>${sumR}</tbody></table></div></div><div>${dH}</div>`;
 }
-
-// ══════════════════════════════════════════════
-// CONFIG MODAL
-// ══════════════════════════════════════════════
-let activeSource='';
-function selectSource(s){
-  activeSource=s;
-  ['drive','upload','manual-src'].forEach(x=>{
-    document.getElementById('sc-'+x)?.classList.toggle('active',x===s);
-    document.getElementById('src-'+x).style.display=x===s?'block':'none';
-  });
+function togKd(id){S.ekd[id]=S.ekd[id]===false?true:false;sched();rKardus();}
+function kdTotBlur(inp){
+  const id=inp.dataset.kid;
+  if(!S.kd[id])S.kd[id]=emKL();
+  S.kd[id].tot=inp.value;sched();updStats();
 }
-function openModal(id){
-  document.getElementById(id).classList.add('show');
-  if(id==='m-config'){
-    document.getElementById('cfg-url').value=CFG.url;
-    document.getElementById('cfg-folder').value=CFG.folder;
-    if(!activeSource) selectSource('drive');
+function kdCauseBlur(inp){
+  const id=inp.dataset.kid,c=inp.dataset.cause;
+  if(!S.kd[id])S.kd[id]=emKL();
+  S.kd[id].causes[c]=inp.value;sched();updStats();
+}
+function kdKey(ev,inp){
+  if(ev.key!=="Enter")return;ev.preventDefault();
+  kdCauseBlur(inp);
+  const li=parseInt(inp.dataset.li),ci=parseInt(inp.dataset.ci);
+  const kid=KL[li].id;
+  if(ci<KC.length-1){const nx=document.querySelector(`[data-kid="${kid}"][data-ci="${ci+1}"]`);nx?.focus();nx?.select();}
+  else{
+    const nkl=KL[li+1];
+    if(nkl){S.ekd[nkl.id]=true;rKardus();setTimeout(()=>{const f=document.querySelector(`[data-kid="${nkl.id}"].num-in-lg`);f?.focus();f?.select();},60);}
   }
 }
-function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
-function updateSidebarFooter(){
-  const el=document.getElementById('sb-footer');
-  const lines=[
-    `<b>${allRecords.length}</b> sesi total`,
-    CFG.url?`<span style="color:var(--grn)">☁ Drive: ${CFG.url.substring(0,30)}…</span>`:'☁ Drive: belum config',
-    localSessions.length?`✏️ Manual: ${localSessions.length}`:null,
-    uploadedRecords.length?`📂 Upload: ${uploadedRecords.length}`:null,
-  ].filter(Boolean);
-  el.innerHTML=lines.join('<br>');
+// ═══════════════════════════════════════════════════
+// TAB: SUMMARY
+// ═══════════════════════════════════════════════════
+function rSummary(){
+  const el=document.getElementById("tab-summary");
+  const to=Object.keys(S.ls).reduce((s,l)=>s+lout(l),0);
+  const tw=S.ent.reduce((s,e)=>s+twaste(e.w),0);
+  const gc=GFV.reduce((s,v)=>s+ni(S.gf[v]?.cl),0);
+  const go=GFV.reduce((s,v)=>s+ni(S.gf[v]?.op),0);
+  const kt=KL.reduce((s,k)=>s+ni((S.kd[k.id]||emKL()).tot),0);
+  const gp=to?((tw/to)*100).toFixed(2)+"%":"—";
+  const bl={};S.ent.forEach(e=>{if(!bl[e.line])bl[e.line]=[];bl[e.line].push(e);});
+  const kH=`<div class="kpi-row">${[["Mesin",S.ent.length,false],["Output",to.toLocaleString(),false],["Waste Pouch",tw.toLocaleString(),false],["% Waste",gp,true],["GF Close",gc.toLocaleString(),false],["GF Open",go.toLocaleString(),false],["Kardus",kt.toLocaleString(),false]].map(([l,v,hi])=>`<div class="kpi${hi?" hi":""}"><div class="kpi-v">${v}</div><div class="kpi-l">${l}</div></div>`).join("")}</div>`;
+  const pR=Object.entries(bl).map(([ln,ents])=>{const sh=S.ls[ln]||emLS(ln),op=lout(ln),tw2=ents.reduce((s,e)=>s+twaste(e.w),0),pc=pctC(tw2,op);return `<div class="sum-row"><span class="tag-m">Line ${ln}</span><span class="tag-v">${sh.variant}</span><span class="sstat">Output: <b>${op.toLocaleString()}</b></span><span class="sstat">Waste: <b style="color:${pc}">${tw2.toLocaleString()}</b></span><span class="pct-pill" style="color:${pc};background:${pc}22;border:1px solid ${pc}">${pctS(tw2,op)}</span></div>`;}).join("")||`<div class="sum-row" style="color:var(--tx3)">Belum ada data</div>`;
+  const gR=GFV.filter(v=>ni(S.gf[v]?.cl)||ni(S.gf[v]?.op)).map(v=>{const c=ni(S.gf[v]?.cl),o=ni(S.gf[v]?.op);return `<div class="sum-row"><span class="tag-v">${v}</span><span class="sstat">Close: <b style="color:var(--grn)">${c}</b></span><span class="sstat">Open: <b style="color:var(--warn)">${o}</b></span><span class="sstat">Total: <b>${c+o}</b></span></div>`;}).join("")||`<div class="sum-row" style="color:var(--tx3)">Tidak ada data</div>`;
+  const kR=KL.map(k=>{const d=S.kd[k.id]||emKL(),t=ni(d.tot),ok=t<=k.tg;return `<div class="sum-row"><span class="tag-m">${k.lb}</span><span class="tag-v">${k.vr}</span><span class="sstat"><b>${t}</b> / ${k.tg} target</span><span class="${ok?"st-ok":"st-ov"}">${ok?"✓ OK":"✗ OVER"}</span></div>`;}).join("");
+  const bR=tw>0?`<div class="sum-block"><div class="sum-bt">📊 Breakdown Jenis Waste Pouch</div><div class="bd-grid">${WT.map(t=>{const tv=S.ent.reduce((s,e)=>s+ni(e.w[t]),0),pct=tw?(tv/tw*100).toFixed(1):0;return `<div class="bd-row"><div class="bd-name">${t}</div><div class="bd-bg"><div class="bd-bar" style="width:${pct}%"></div></div><div class="bd-nums"><span>${tv.toLocaleString()}</span><span class="bd-pct">${pct}%</span></div></div>`;}).join("")}</div></div>`:"";
+  el.innerHTML=`${kH}<div class="sum-block"><div class="sum-bt">📦 Waste Pouch per Line</div>${pR}</div><div class="sum-block"><div class="sum-bt">⚠ Gagal Filling</div>${gR}</div><div class="sum-block"><div class="sum-bt">📋 Waste Kardus per Line</div>${kR}</div>${bR}`;
 }
 
-// ══════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════
-let _tt;
-function showToast(msg,type='ok'){
-  const el=document.getElementById('toast');
-  el.textContent=msg; el.className='toast show '+type;
-  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000);
+// ═══════════════════════════════════════════════════
+// EXPORT XLSX
+// ═══════════════════════════════════════════════════
+function exportXLSX(){
+  if(!window.XLSX){showToast("SheetJS belum load, refresh dulu","err");return;}
+  const XLSX=window.XLSX,wb=XLSX.utils.book_new();
+  const hdr=["Grup:",S.hdr.g,"Tanggal:",S.hdr.d,"Shift:",`Shift ${S.hdr.s}`];
+  const ws1=[["WASTE POUCH REPORT"],hdr,[]];
+  ws1.push(["Line","Mesin","Varian","Output(Box)","Output(Pcs)",...WT,"Total Waste","% Waste","Sampel QC","SL QC","Hasil Heater","Waste Filling"]);
+  S.ent.forEach(e=>{const sh=S.ls[e.line]||emLS(e.line),pcs=lout(e.line),tw=twaste(e.w);ws1.push([e.line,e.machine,sh.variant,Object.values(sh.obv).reduce((s,v)=>ni(v)+s,0),pcs,...WT.map(t=>ni(e.w[t])),tw,pcs?(tw/pcs*100).toFixed(2)+"%":"0%",ni(sh.sampelQC),ni(sh.slQC),ni(sh.hasilHeater),ni(sh.wasteFilling)]);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws1),"Waste Pouch");
+  const ws2=[["DATA COUNTER MESIN"],hdr,[]];
+  ws2.push(["Line","Varian","pcs/box","Mesin","Counter","FG (box)","Total Counter","Box (total/ppb)","Selisih Box","Selisih Pcs"]);
+  Object.entries(S.ctr).forEach(([ln,ms])=>{
+    const sh=S.ls[ln]||emLS(ln),pb=ppb(sh.variant);
+    const totC=ms.reduce((s,m)=>s+ni(m.counter),0),totFG=ms.reduce((s,m)=>s+ni(m.fg),0);
+    const box=totC/pb,selBox=box-totFG,selPcs=Math.round(selBox*pb);
+    ms.forEach(m=>{ws2.push([ln,sh.variant,pb,m.m,ni(m.counter),ni(m.fg),totC,box.toFixed(3),selBox.toFixed(3),selPcs]);});
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws2),"Counter Mesin");
+  const ws3=[["DATA PENGERJAAN GAGAL FILLING"],hdr,[]];
+  ws3.push(["Varian","Close (pcs)","Open (pcs)","Total"]);
+  GFV.forEach(v=>{const c=ni(S.gf[v]?.cl),o=ni(S.gf[v]?.op);ws3.push([v,c,o,c+o]);});
+  ws3.push(["TOTAL",GFV.reduce((s,v)=>s+ni(S.gf[v]?.cl),0),GFV.reduce((s,v)=>s+ni(S.gf[v]?.op),0),GFV.reduce((s,v)=>s+ni(S.gf[v]?.cl)+ni(S.gf[v]?.op),0)]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws3),"Gagal Filling");
+  const ws4=[["WASTE KARDUS PERSHIFT"],hdr,[]];
+  ws4.push(["Line","Varian","Total Waste","Target","Status",...KC]);
+  KL.forEach(k=>{const d=S.kd[k.id]||emKL(),t=ni(d.tot);ws4.push([k.lb,k.vr,t,k.tg,t<=k.tg?"OK":"OVER",...KC.map(c=>ni(d.causes[c]))]);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws4),"Waste Kardus");
+  XLSX.writeFile(wb,`WasteHub_Grp${S.hdr.g}_Shift${S.hdr.s}_${S.hdr.d}.xlsx`);
+  showToast("XLSX berhasil diunduh","ok");
 }
 
-// ══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// RESET
+// ═══════════════════════════════════════════════════
+function doReset(){
+  const h=S.hdr;
+  S=dfState();S.hdr=h;
+  saveS();closeModal("modal-reset");renderAll();
+  showToast("Data input berhasil direset","ok");
+}
+
+// ═══════════════════════════════════════════════════
+// GOOGLE DRIVE (JSON backup)
+// ═══════════════════════════════════════════════════
+const GAS_CODE=`// Google Apps Script — deploy sebagai Web App
+// Execute as: Me | Who has access: Anyone
+
+function doPost(e) {
+  try {
+    const p = JSON.parse(e.postData.contents);
+    if (p.action === "save") return saveFile(p);
+    return out({status:"error",msg:"unknown action"});
+  } catch(err) { return out({status:"error",msg:err.toString()}); }
+}
+
+function saveFile(p) {
+  const name = p.fileName;
+  const body = JSON.stringify(p.data, null, 2);
+  const folder = p.folderId
+    ? DriveApp.getFolderById(p.folderId)
+    : DriveApp.getRootFolder();
+  const iter = folder.getFilesByName(name);
+  if (iter.hasNext()) { iter.next().setContent(body); }
+  else { folder.createFile(name, body, MimeType.PLAIN_TEXT); }
+  return out({status:"ok", fileName: name});
+}
+
+function out(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+function openDriveModal(){
+  document.getElementById("modal-drive-body").innerHTML=`
+  <p class="mp"><b>Cara setup (1x saja):</b></p>
+  <ol class="msteps">
+    <li>Buka <b>script.google.com</b> → New Project</li>
+    <li>Hapus kode lama, paste kode berikut:</li>
+  </ol>
+  <div class="code-blk">${GAS_CODE}</div>
+  <ol class="msteps" start="3">
+    <li>Klik <b>Deploy → New Deployment → Web App</b></li>
+    <li>Execute as: <b>Me</b> · Who has access: <b>Anyone</b></li>
+    <li>Klik Deploy → Authorize → Copy URL</li>
+    <li><i>(Opsional)</i> Salin Folder ID dari URL folder Drive tujuan</li>
+  </ol>
+  <div class="field-row" style="margin-top:10px">
+    <div class="field" style="flex:1"><label>URL Web App *</label>
+      <input class="url-in" id="d-url" type="text" placeholder="https://script.google.com/macros/s/..." value="${CFG.url||""}" oninput="chkDUrl()"/>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field" style="flex:1"><label>Folder ID Drive (opsional)</label>
+      <input class="url-in" id="d-fid" type="text" placeholder="1ABC...xyz" value="${CFG.fid||""}"/>
+    </div>
+  </div>
+  <p class="url-warn" id="d-warn" style="display:none">⚠ URL tidak valid</p>
+  <p class="mp" style="color:var(--tx3);margin-top:8px">File disimpan sebagai: <code>WasteHub_GrpX_ShiftY_TANGGAL.json</code><br/>Setelah kirim berhasil, data input otomatis direset.</p>
+  <div class="macts">
+    <button class="btn-s" onclick="closeModal('modal-drive')">Batal</button>
+    <button class="btn-g" id="d-save" onclick="saveDCfg()" ${CFG.url.includes("script.google.com")?"":"disabled"}>✓ Simpan</button>
+  </div>`;
+  document.getElementById("modal-drive").classList.add("show");
+}
+function chkDUrl(){
+  const v=document.getElementById("d-url").value;
+  const ok=v.includes("script.google.com");
+  document.getElementById("d-warn").style.display=v&&!ok?"block":"none";
+  document.getElementById("d-save").disabled=!ok;
+}
+function saveDCfg(){
+  CFG.url=document.getElementById("d-url").value;
+  CFG.fid=document.getElementById("d-fid").value.trim()||"";
+  saveCFG();
+  document.getElementById("btn-drive-cfg").textContent="✅";
+  closeModal("modal-drive");
+  showToast("Konfigurasi Drive tersimpan","ok");
+}
+async function sendToDrive(){
+  if(!CFG.url){openDriveModal();return;}
+  const btn=document.getElementById("btn-drive");
+  btn.classList.add("sending");btn.textContent="⟳ Mengirim…";
+  try{
+    await fetch(CFG.url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action:"save",folderId:CFG.fid||null,
+        fileName:`WasteHub_Grp${S.hdr.g}_Shift${S.hdr.s}_${S.hdr.d}.json`,
+        data:{savedAt:new Date().toISOString(),header:S.hdr,lineShared:S.ls,entries:S.ent,counter:S.ctr,gf:S.gf,kardus:S.kd}
+      })
+    });
+    showToast("✓ Tersimpan di Drive","ok");
+    setTimeout(()=>doReset(),800);
+  }catch(err){showToast("✗ Gagal: "+err.message,"err");}
+  btn.classList.remove("sending");btn.textContent="📤 Kirim Drive";
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL & TOAST
+// ═══════════════════════════════════════════════════
+function closeModal(id){document.getElementById(id).classList.remove("show");}
+let _toastT=null;
+function showToast(msg,type="info"){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className=`toast show ${type}`;
+  clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove("show"),3500);
+}
+
+// ═══════════════════════════════════════════════════
+// HEADER CONTROLS
+// ═══════════════════════════════════════════════════
+document.getElementById("inp-date").value=S.hdr.d;
+document.getElementById("inp-date").oninput=function(){S.hdr.d=this.value;sched();};
+document.querySelectorAll("[data-grp]").forEach(b=>{
+  b.classList.toggle("on",b.dataset.grp===S.hdr.g);
+  b.onclick=function(){document.querySelectorAll("[data-grp]").forEach(x=>x.classList.remove("on"));this.classList.add("on");S.hdr.g=this.dataset.grp;sched();};
+});
+document.querySelectorAll("[data-shift]").forEach(b=>{
+  b.classList.toggle("son",b.dataset.shift===S.hdr.s);
+  b.onclick=function(){document.querySelectorAll("[data-shift]").forEach(x=>x.classList.remove("son"));this.classList.add("son");S.hdr.s=this.dataset.shift;document.getElementById("shift-lbl").textContent=SM[this.dataset.shift];sched();};
+});
+document.getElementById("shift-lbl").textContent=SM[S.hdr.s];
+document.querySelectorAll(".tab").forEach(b=>{
+  b.onclick=function(){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));this.classList.add("on");
+    const tab=this.dataset.tab;
+    ["pouch","counter","gf","kardus","summary"].forEach(t=>document.getElementById("tab-"+t).style.display=t===tab?"block":"none");
+    if(tab==="summary")rSummary();
+  };
+});
+document.getElementById("btn-drive-cfg").onclick=openDriveModal;
+document.getElementById("btn-drive").onclick=sendToDrive;
+document.getElementById("btn-reset").onclick=()=>document.getElementById("modal-reset").classList.add("show");
+document.getElementById("btn-xlsx").onclick=exportXLSX;
+document.getElementById("modal-drive").onclick=e=>{if(e.target===document.getElementById("modal-drive"))closeModal("modal-drive");};
+document.getElementById("modal-reset").onclick=e=>{if(e.target===document.getElementById("modal-reset"))closeModal("modal-reset");};
+// Kredensial sudah tertanam — selalu tampilkan sebagai terhubung
+document.getElementById("btn-drive-cfg").textContent="✅";
+document.getElementById("btn-drive-cfg").title="Drive terhubung\nFolder: "+CFG.fid+"\n"+CFG.url.slice(0,60)+"…";
+
+// ═══════════════════════════════════════════════════
+// PWA — Service Worker inline via blob
+// ═══════════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  const swCode=`
+const CACHE='wastehub-v1';
+const ASSETS=[
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap'
+];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));
+  self.skipWaiting();
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch',e=>{
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline',{status:503}))));
+});`;
+  const swBlob=new Blob([swCode],{type:'text/javascript'});
+  const swUrl=URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).catch(()=>{});
+}
+
+// PWA install prompt
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById("install-bar").classList.add("show");
+});
+document.getElementById("btn-install").onclick=async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  document.getElementById("install-bar").classList.remove("show");
+  if(outcome==="accepted")showToast("WasteHub berhasil diinstall!","ok");
+};
+document.getElementById("btn-install-dismiss").onclick=()=>{
+  document.getElementById("install-bar").classList.remove("show");
+};
+window.addEventListener('appinstalled',()=>{
+  document.getElementById("install-bar").classList.remove("show");
+  showToast("WasteHub terinstall sebagai aplikasi ✓","ok");
+});
+
+// ═══════════════════════════════════════════════════
 // INIT
-// ══════════════════════════════════════════════
-(function(){
-  // Set default monthly range
-  const t=new Date();
-  document.getElementById('inp-from').value=fmt(new Date(t.getFullYear(),t.getMonth(),1));
-  document.getElementById('inp-to').value=fmt(new Date(t.getFullYear(),t.getMonth()+1,0));
-
-  // Close modal on backdrop
-  ['m-config'].forEach(id=>{
-    document.getElementById(id).addEventListener('click',function(e){
-      if(e.target===this) closeModal(id);
-    });
-  });
-
-  if(localSessions.length){
-    document.getElementById('badge-manual').style.display='inline';
-    mergeAll();
-  }
-  updateSidebarFooter();
-
-  // Auto-refresh 5 min
-  setInterval(()=>{ if(CFG.url && driveRecords.length) refreshData(); }, 5*60*1000);
-
-  // If URL configured, try to load
-  if(CFG.url){
-    setTimeout(refreshData, 500);
-  }
-})();
+// ═══════════════════════════════════════════════════
+renderAll();
+const savedAt=localStorage.getItem(SK);
+if(savedAt){document.getElementById("stxt").textContent="Data tersimpan";}
 </script>
 </body>
 </html>
