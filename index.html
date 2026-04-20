@@ -1210,8 +1210,8 @@ function buildPct(id,labs,pd){
   const pc=pd.map(v=>v>5?'#dc2626':v>2?'#d97706':'#16a34a');
   charts[id]=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[
     {label:'% Waste',data:pd,borderColor:'#d97706',backgroundColor:'#d9770612',borderWidth:2,pointRadius:4,pointBackgroundColor:pc,tension:.3,fill:true},
-    {label:'Target 2%',data:labs.map(()=>2),borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
-    {label:'Batas 5%',data:labs.map(()=>5),borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
+    {label:'Target 0.4%',data:labs.map(()=>0.4),borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
+    {label:'Batas 0.7%',data:labs.map(()=>0.7),borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
   ]},options:{responsive:true,maintainAspectRatio:true,
     plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
     scales:{y:{min:0,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'}},
