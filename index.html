@@ -227,6 +227,34 @@ select.fi{cursor:pointer;}
 .pbar-bg{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;flex:1;min-width:60px;}
 .pbar-fill{height:100%;border-radius:3px;transition:width .3s;}
 
+/* ── ANALYTIC FILTER PANEL ── */
+.af-panel{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);padding:12px 16px;margin-bottom:14px;box-shadow:var(--sh);display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
+.af-group{display:flex;flex-direction:column;gap:4px;}
+.af-label{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;}
+.af-sel{height:30px;padding:0 10px;border:1px solid var(--bdr);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--tx);min-width:130px;}
+.af-sel:focus{outline:none;border-color:var(--acc);}
+.af-tags{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.af-tag{padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;background:var(--acc-l);color:var(--acc);border:1px solid var(--acc-m);}
+
+/* ── MACHINE HEAT TABLE ── */
+.heat-tbl{border-collapse:collapse;width:100%;font-size:11px;}
+.heat-tbl th{background:var(--s2);color:var(--tx2);padding:6px 10px;border-bottom:2px solid var(--bdr);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;text-align:center;}
+.heat-tbl th.left{text-align:left;}
+.heat-tbl td{padding:5px 10px;border-bottom:1px solid var(--bdr);text-align:center;vertical-align:middle;}
+.heat-tbl td.left{text-align:left;}
+.heat-tbl tr:last-child td{border-bottom:none;}
+.heat-tbl tr:hover td{background:var(--s2);}
+.heat-cell{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600;min-width:44px;}
+.hc-0{background:#f0fdf4;color:#15803d;}
+.hc-1{background:#fefce8;color:#a16207;}
+.hc-2{background:#fff7ed;color:#c2410c;}
+.hc-3{background:#fef2f2;color:#dc2626;}
+.hc-4{background:#7f1d1d;color:#fff;}
+
+/* ── SECTION DIVIDER ── */
+.sec-divider{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;padding:6px 0 8px;border-bottom:1px solid var(--bdr);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sec-divider::after{content:'';flex:1;height:1px;background:var(--bdr);}
+
 /* ── FILTER BAR ── */
 .filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);box-shadow:var(--sh);}
 .filter-bar label{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
@@ -281,6 +309,7 @@ select.fi{cursor:pointer;}
     <button class="ni" data-v="waste"    onclick="nav('waste')"><span class="ni-icon">📦</span>Waste Pouch</button>
     <button class="ni" data-v="gf"       onclick="nav('gf')"><span class="ni-icon">⚠️</span>Gagal Filling</button>
     <button class="ni" data-v="kardus"   onclick="nav('kardus')"><span class="ni-icon">📋</span>Kardus</button>
+    <button class="ni" data-v="analytic" onclick="nav('analytic')"><span class="ni-icon">🔬</span>Analitik Mesin</button>
   </div>
   <div class="sb-sec">Input &amp; Data</div>
   <div class="nav">
@@ -469,6 +498,7 @@ let localSessions = JSON.parse(localStorage.getItem('wh_manual')||'[]'); // manu
 let allRecords    = [];                                                // merged view
 let charts        = {};
 let currentVariantFilter = 'all';  // filter varian di view Waste
+let analyticFilter = {variant:'all', group:'all'};  // filter di Analitik Mesin
 let editIdx       = -1;            // index sesi manual yang sedang diedit
 let currentView   = 'overview';
 let currentPeriod = 'daily';
@@ -618,6 +648,77 @@ function pBadge(v) {
 }
 function destroyChart(id) { if(charts[id]){charts[id].destroy();delete charts[id];} }
 
+// Ambil total counter dari semua sesi untuk satu mesin
+function getMachineStats(recs, filterVariant, filterGroup) {
+  // mm[machine] = {line, variant, counter, waste, wasteByType:{}, sessions}
+  const mm = {};
+  recs.forEach(r => {
+    const grp = r.header?.group || '—';
+    if(filterGroup !== 'all' && grp !== filterGroup) return;
+
+    // Kumpulkan counter per mesin
+    Object.entries(r.counter || {}).forEach(([line, arr]) => {
+      if(!Array.isArray(arr)) return;
+      // Cek varian line ini cocok dengan filter
+      const sh = r.lineShared?.[line];
+      const lineVariants = Object.keys(sh?.outputByVariant || {});
+      if(filterVariant !== 'all' && !lineVariants.includes(filterVariant)) return;
+
+      arr.forEach(mc => {
+        const mkey = mc.m;
+        if(!mkey) return;
+        if(!mm[mkey]) mm[mkey] = {line, variant: lineVariants.join('/'), counter:0, waste:0, wasteByType:{}, sessions:0};
+        mm[mkey].counter += ni(mc.counter);
+      });
+    });
+
+    // Kumpulkan waste per mesin dari entries
+    (r.entries || []).forEach(e => {
+      const mkey = e.machine;
+      if(!mkey) return;
+      // Cek varian line entries cocok filter
+      const sh = r.lineShared?.[e.line];
+      const lineVariants = Object.keys(sh?.outputByVariant || {});
+      if(filterVariant !== 'all' && !lineVariants.includes(filterVariant)) return;
+      if(filterGroup !== 'all' && (r.header?.group || '—') !== filterGroup) return;
+
+      if(!mm[mkey]) mm[mkey] = {line:e.line, variant: lineVariants.join('/'), counter:0, waste:0, wasteByType:{}, sessions:0};
+      const tw = totalWaste(e.waste || {});
+      mm[mkey].waste += tw;
+      mm[mkey].sessions++;
+      WT.forEach(t => {
+        mm[mkey].wasteByType[t] = (mm[mkey].wasteByType[t]||0) + ni(e.waste?.[t]);
+      });
+    });
+  });
+  return mm;
+}
+
+// Waste per varian per grup
+function getVariantGroupStats(recs, filterVariant, filterGroup) {
+  // vgm[variant][group] = {out, waste, counter}
+  const vgm = {};
+  recs.forEach(r => {
+    const grp = r.header?.group || '—';
+    if(filterGroup !== 'all' && grp !== filterGroup) return;
+    Object.entries(r.lineShared || {}).forEach(([line, sh]) => {
+      Object.entries(sh.outputByVariant || {}).forEach(([v, boxes]) => {
+        if(filterVariant !== 'all' && v !== filterVariant) return;
+        if(!vgm[v]) vgm[v] = {};
+        if(!vgm[v][grp]) vgm[v][grp] = {out:0, waste:0, counter:0};
+        vgm[v][grp].out += ni(boxes) * ppb(v);
+        // counter dari mesin di line ini
+        (r.counter?.[line] || []).forEach(mc => { vgm[v][grp].counter += ni(mc.counter); });
+        // waste dari entries line ini
+        (r.entries || []).filter(e => e.line === line).forEach(e => {
+          vgm[v][grp].waste += totalWaste(e.waste || {});
+        });
+      });
+    });
+  });
+  return vgm;
+}
+
 // ══════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════
@@ -626,6 +727,7 @@ function nav(v) {
   document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.dataset.v===v));
   if(v==='manual')   { renderManual(); return; }
   if(v==='sessions') { renderSessions(); return; }
+  if(v==='analytic') { renderAnalytic(); return; }
   renderView();
   if(window.innerWidth<=768) toggleSidebar(false);
 }
@@ -799,7 +901,7 @@ function loadDemoData(){
 // RENDER ROUTER
 // ══════════════════════════════════════════════
 function renderView(){
-  if(!['overview','waste','gf','kardus'].includes(currentView)) return;
+  if(!['overview','waste','gf','kardus'].includes(currentView)) return; // analytic handled separately
   const filtered=filterByDate(allRecords);
   if(!filtered.length){
     document.getElementById('content').innerHTML=`
@@ -1397,6 +1499,367 @@ function saveMI(){
 function resetMI(){
   MI={header:{group:'A',date:fmt(new Date()),shift:'1'},lines:[],ls:{},entries:[],gf:{},kardus:{}};
   renderManual();
+}
+
+// ══════════════════════════════════════════════
+// ANALYTIC VIEW
+// ══════════════════════════════════════════════
+function renderAnalytic() {
+  const recs = filterByDate(allRecords);
+  if(!recs.length){
+    document.getElementById('content').innerHTML=`<div class="empty"><div class="e-icon">🔬</div><div class="e-title">Tidak ada data pada rentang ini</div><div class="e-sub">Ubah rentang tanggal atau muat data via <b>⚙ Sumber Data</b>.</div></div>`;
+    return;
+  }
+
+  const fv = analyticFilter.variant;
+  const fg = analyticFilter.group;
+
+  // Kumpulkan semua varian & grup yang tersedia
+  const allVars = [...new Set(recs.flatMap(r => Object.values(r.lineShared||{}).flatMap(sh => Object.keys(sh.outputByVariant||{}))))].sort();
+  const allGrps = [...new Set(recs.map(r => r.header?.group).filter(Boolean))].sort();
+
+  const mm = getMachineStats(recs, fv, fg);
+  const vgm = getVariantGroupStats(recs, fv, fg);
+
+  const varOpts = `<option value="all" ${fv==='all'?'selected':''}>Semua Varian</option>`
+    + allVars.map(v=>`<option value="${v}" ${fv===v?'selected':''}>${v}</option>`).join('');
+  const grpOpts = `<option value="all" ${fg==='all'?'selected':''}>Semua Grup</option>`
+    + allGrps.map(g=>`<option value="${g}" ${fg===g?'selected':''}>${g}</option>`).join('');
+
+  // ── KPI global ──
+  const totalCounter = Object.values(mm).reduce((s,m)=>s+m.counter,0);
+  const totalWasteAll = Object.values(mm).reduce((s,m)=>s+m.waste,0);
+  const globalPct = totalCounter>0 ? (totalWasteAll/totalCounter*100).toFixed(2) : '—';
+  const worstMachine = Object.entries(mm).sort((a,b)=>{
+    const pa = a[1].counter>0?a[1].waste/a[1].counter:0;
+    const pb = b[1].counter>0?b[1].waste/b[1].counter:0;
+    return pb-pa;
+  })[0];
+  const worstPct = worstMachine && worstMachine[1].counter>0
+    ? (worstMachine[1].waste/worstMachine[1].counter*100).toFixed(2) : '—';
+
+  document.getElementById('content').innerHTML = `
+    <div class="ph">
+      <div class="ph-left">
+        <div class="title">🔬 Analitik Mesin</div>
+        <div class="sub">${recs.length} sesi · ${Object.keys(mm).length} mesin tercatat</div>
+      </div>
+    </div>
+
+    <!-- FILTER PANEL -->
+    <div class="af-panel">
+      <div class="af-group">
+        <span class="af-label">Varian</span>
+        <select class="af-sel" onchange="analyticFilter.variant=this.value;renderAnalytic()">
+          ${varOpts}
+        </select>
+      </div>
+      <div class="af-group">
+        <span class="af-label">Grup</span>
+        <select class="af-sel" onchange="analyticFilter.group=this.value;renderAnalytic()">
+          ${grpOpts}
+        </select>
+      </div>
+      <div class="af-tags">
+        ${fv!=='all'?`<span class="af-tag">📦 ${fv}</span>`:''}
+        ${fg!=='all'?`<span class="af-tag">👥 Grup ${fg}</span>`:''}
+      </div>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="kpi-row c4" style="margin-bottom:14px">
+      ${kpiCard('Total Counter','c-blue','var(--acc)',totalCounter.toLocaleString(),'pcs (counter mesin)',{v:'—',cls:'neu'})}
+      ${kpiCard('Total Waste','c-red','var(--red)',totalWasteAll.toLocaleString(),'pcs',{v:'—',cls:'neu'})}
+      ${kpiCard('% Waste/Counter',pctCls(globalPct),'var(--warn)',globalPct+'%','waste÷counter×100',{v:'—',cls:'neu'})}
+      ${kpiCard('Mesin Terburuk','c-red','var(--red)',worstMachine?worstMachine[0]:'—',worstMachine?worstPct+'% waste/counter':'—',{v:'—',cls:'neu'})}
+    </div>
+
+    <!-- SECTION 1: % WASTE PER MESIN -->
+    <div class="sec-divider">📊 Persentase Waste per Mesin (Waste ÷ Counter)</div>
+    <div class="g2e" style="margin-bottom:12px">
+      <div class="card">
+        <div class="card-h"><div class="card-title">📉 % Waste/Counter per Mesin</div><div class="card-meta">Sorted tertinggi</div></div>
+        <div class="card-b tall"><canvas id="ch-an-mpct"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-title">⚙️ Waste Total per Mesin</div></div>
+        <div class="card-b tall"><canvas id="ch-an-mwaste"></canvas></div>
+      </div>
+    </div>
+    ${tblMachineAnalytic(mm)}
+
+    <!-- SECTION 2: % WASTE PER VARIAN -->
+    <div class="sec-divider">📦 Persentase Waste per Varian (Waste ÷ Counter Varian)</div>
+    <div class="g2e" style="margin-bottom:12px">
+      <div class="card">
+        <div class="card-h"><div class="card-title">📊 % Waste/Counter per Varian</div></div>
+        <div class="card-b tall"><canvas id="ch-an-vpct"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-title">📊 Output vs Waste per Varian</div></div>
+        <div class="card-b tall"><canvas id="ch-an-vbar"></canvas></div>
+      </div>
+    </div>
+    ${tblVariantAnalytic(vgm, allGrps)}
+
+    <!-- SECTION 3: PERBANDINGAN ANTAR GRUP -->
+    <div class="sec-divider">👥 Perbandingan % Waste per Grup</div>
+    <div class="g2e" style="margin-bottom:12px">
+      <div class="card">
+        <div class="card-h"><div class="card-title">📊 % Waste Total per Grup</div></div>
+        <div class="card-b"><canvas id="ch-an-gpct"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-title">📊 % Waste per Varian per Grup</div><div class="card-meta">Grouped bar</div></div>
+        <div class="card-b"><canvas id="ch-an-gvpct"></canvas></div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: HEATMAP JENIS WASTE PER MESIN -->
+    <div class="sec-divider">🌡️ Jenis Waste Tertinggi per Mesin (% terhadap Counter)</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-h">
+        <div class="card-title">🌡️ Heat Map — % Jenis Waste ÷ Counter Mesin</div>
+        <div class="card-meta">Warna merah = persentase tinggi</div>
+      </div>
+      <div class="tbl-wrap" style="padding:0">${tblHeatmap(mm)}</div>
+    </div>
+  `;
+
+  // ── CHART 1: % waste/counter per mesin ──
+  const sortedM = Object.entries(mm).filter(([,d])=>d.counter>0).sort((a,b)=>{
+    return (b[1].waste/b[1].counter) - (a[1].waste/a[1].counter);
+  }).slice(0,20);
+  buildAnalyticMPct('ch-an-mpct', sortedM);
+  buildAnalyticMWaste('ch-an-mwaste', sortedM);
+
+  // ── CHART 2: % waste per varian ──
+  buildAnalyticVPct('ch-an-vpct', vgm);
+  buildAnalyticVBar('ch-an-vbar', vgm);
+
+  // ── CHART 3: perbandingan grup ──
+  buildAnalyticGPct('ch-an-gpct', recs, allGrps, fv);
+  buildAnalyticGVPct('ch-an-gvpct', vgm, allGrps, allVars, fv);
+}
+
+// ── TABLE: Mesin Analitik ──
+function tblMachineAnalytic(mm) {
+  const rows = Object.entries(mm).sort((a,b)=>{
+    const pa = a[1].counter>0 ? a[1].waste/a[1].counter : 0;
+    const pb = b[1].counter>0 ? b[1].waste/b[1].counter : 0;
+    return pb - pa;
+  }).map(([mach,d],i) => {
+    const pct = d.counter>0 ? (d.waste/d.counter*100).toFixed(2) : '—';
+    const topWT = Object.entries(d.wasteByType).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>0).slice(0,2).map(([t,v])=>`<span class="badge b-red" style="font-size:9px;margin-right:2px">${t.substring(0,20)}: ${v}</span>`).join('');
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--tx3);width:28px">${i+1}</td>
+      <td><span class="badge b-gray">${mach}</span></td>
+      <td><span class="badge b-blue">${d.line}</span></td>
+      <td style="font-size:10px;color:var(--tx2)">${d.variant}</td>
+      <td class="r m">${d.counter.toLocaleString()}</td>
+      <td class="r m">${d.waste.toLocaleString()}</td>
+      <td style="text-align:center">${pct!=='—'?pBadge(pct):'—'}</td>
+      <td style="max-width:260px">${topWT||'—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--tx3)">Tidak ada data counter</td></tr>';
+  return `<div class="card" style="margin-bottom:12px">
+    <div class="card-h"><div class="card-title">📋 Detail % Waste per Mesin</div></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>#</th><th class="left">Mesin</th><th class="left">Line</th><th class="left">Varian</th><th style="text-align:right">Counter</th><th style="text-align:right">Waste</th><th style="text-align:center">% W/Counter</th><th class="left">Waste Tertinggi</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ── TABLE: Varian Analitik per Grup ──
+function tblVariantAnalytic(vgm, allGrps) {
+  const variants = Object.keys(vgm).sort();
+  if(!variants.length) return `<div class="card" style="margin-bottom:12px"><div class="card-b" style="text-align:center;color:var(--tx3);padding:20px">Tidak ada data varian</div></div>`;
+  const grpCols = allGrps.map(g=>`<th style="text-align:right">Grp ${g} (%)</th>`).join('');
+  const rows = variants.map(v => {
+    const grpCells = allGrps.map(g => {
+      const d = vgm[v]?.[g];
+      if(!d || d.counter===0) return '<td class="r m" style="color:var(--tx3)">—</td>';
+      const pct = (d.waste/d.counter*100).toFixed(2);
+      return `<td style="text-align:right">${pBadge(pct)}</td>`;
+    }).join('');
+    // total lintas grup
+    const totC = allGrps.reduce((s,g)=>s+(vgm[v]?.[g]?.counter||0),0);
+    const totW = allGrps.reduce((s,g)=>s+(vgm[v]?.[g]?.waste||0),0);
+    const totPct = totC>0?(totW/totC*100).toFixed(2):'—';
+    return `<tr>
+      <td><span class="badge b-pur">${v}</span></td>
+      <td class="r m">${totC.toLocaleString()}</td>
+      <td class="r m">${totW.toLocaleString()}</td>
+      <td style="text-align:center">${totPct!=='—'?pBadge(totPct):'—'}</td>
+      ${grpCells}
+    </tr>`;
+  }).join('');
+  return `<div class="card" style="margin-bottom:12px">
+    <div class="card-h"><div class="card-title">📋 % Waste per Varian per Grup</div></div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th class="left">Varian</th><th style="text-align:right">Counter Total</th><th style="text-align:right">Waste Total</th><th style="text-align:center">% Total</th>${grpCols}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ── TABLE: Heatmap Jenis Waste per Mesin ──
+function tblHeatmap(mm) {
+  const machines = Object.entries(mm).filter(([,d])=>d.counter>0).sort((a,b)=>b[1].waste-a[1].waste).slice(0,15);
+  if(!machines.length) return `<div style="text-align:center;padding:20px;color:var(--tx3)">Tidak ada data counter untuk heatmap</div>`;
+
+  // Cari max per jenis untuk normalisasi warna
+  const wtMax = {};
+  WT.forEach(t => { wtMax[t] = Math.max(...machines.map(([,d])=>d.counter>0?d.wasteByType[t]/d.counter*100:0)); });
+
+  function heatColor(pct, max) {
+    if(!max||max===0) return 'hc-0';
+    const r = pct/max;
+    if(r<0.2) return 'hc-0';
+    if(r<0.4) return 'hc-1';
+    if(r<0.65) return 'hc-2';
+    if(r<0.85) return 'hc-3';
+    return 'hc-4';
+  }
+
+  const header = `<tr>
+    <th class="left" style="min-width:60px">Mesin</th>
+    <th class="left" style="min-width:50px">Line</th>
+    <th style="text-align:right;min-width:70px">Counter</th>
+    <th style="text-align:right;min-width:70px">Waste</th>
+    <th style="text-align:center;min-width:60px">%Total</th>
+    ${WT.map(t=>`<th style="min-width:70px;font-size:8px;white-space:normal;text-align:center;line-height:1.3">${t.substring(0,18)}</th>`).join('')}
+  </tr>`;
+
+  const rows = machines.map(([mach,d])=>{
+    const totalPct = d.counter>0?(d.waste/d.counter*100).toFixed(2):0;
+    const cells = WT.map(t => {
+      const v = d.wasteByType[t]||0;
+      const pct = d.counter>0?(v/d.counter*100).toFixed(2):0;
+      const cls = heatColor(+pct, wtMax[t]);
+      return `<td><span class="heat-cell ${cls}">${pct}%</span></td>`;
+    }).join('');
+    return `<tr>
+      <td class="left"><span class="badge b-gray">${mach}</span></td>
+      <td class="left"><span class="badge b-blue">${d.line}</span></td>
+      <td class="r m">${d.counter.toLocaleString()}</td>
+      <td class="r m">${d.waste.toLocaleString()}</td>
+      <td style="text-align:center">${pBadge(totalPct)}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  return `<table class="heat-tbl"><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+}
+
+// ── CHART BUILDERS ANALYTIC ──
+function buildAnalyticMPct(id, sortedM) {
+  destroyChart(id);
+  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const labs = sortedM.map(([m])=>m);
+  const data = sortedM.map(([,d])=>d.counter>0?(d.waste/d.counter*100).toFixed(2):0);
+  const colors = data.map(v=>+v>5?'#dc2626bb':+v>2?'#d97706bb':'#16a34abb');
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[{label:'% Waste/Counter',data,backgroundColor:colors,borderColor:colors.map(c=>c.replace('bb','')),borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.x}%`}}},
+      scales:{x:{ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'}},
+              y:{ticks:{font:{size:10}}}}}});
+}
+
+function buildAnalyticMWaste(id, sortedM) {
+  destroyChart(id);
+  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const labs = sortedM.map(([m])=>m);
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:labs,datasets:[
+    {label:'Counter',data:sortedM.map(([,d])=>d.counter),backgroundColor:'#2563eb22',borderColor:'#2563eb',borderWidth:1.5,yAxisID:'y',order:2},
+    {label:'Waste',data:sortedM.map(([,d])=>d.waste),type:'line',borderColor:'#dc2626',backgroundColor:'#dc262618',borderWidth:2,pointRadius:3,tension:.3,fill:true,yAxisID:'y2',order:1}
+  ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:8}}},
+    scales:{y:{ticks:{font:{size:10}}},
+            x:{position:'bottom',ticks:{font:{size:9}},grid:{color:'#f0f2f5'},title:{display:true,text:'Counter (biru) / Waste (merah)',font:{size:9}}},
+            x2:{display:false}}}});
+}
+
+function buildAnalyticVPct(id, vgm) {
+  destroyChart(id);
+  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const variants = Object.keys(vgm).sort();
+  const data = variants.map(v=>{
+    const totC = Object.values(vgm[v]).reduce((s,d)=>s+d.counter,0);
+    const totW = Object.values(vgm[v]).reduce((s,d)=>s+d.waste,0);
+    return totC>0?(totW/totC*100).toFixed(2):0;
+  });
+  const colors = data.map(v=>+v>5?'#dc2626bb':+v>2?'#d97706bb':'#16a34abb');
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:variants,datasets:[{label:'% Waste/Counter',data,backgroundColor:colors,borderColor:colors.map(c=>c.replace('bb','')),borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y}%`}}},
+      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'},
+        title:{display:true,text:'% Waste/Counter',font:{size:9}}}}}});
+}
+
+function buildAnalyticVBar(id, vgm) {
+  destroyChart(id);
+  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const variants = Object.keys(vgm).sort();
+  const totC = variants.map(v=>Object.values(vgm[v]).reduce((s,d)=>s+d.counter,0));
+  const totW = variants.map(v=>Object.values(vgm[v]).reduce((s,d)=>s+d.waste,0));
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:variants,datasets:[
+    {label:'Counter',data:totC,backgroundColor:'#2563eb22',borderColor:'#2563eb',borderWidth:1.5,yAxisID:'y',order:2},
+    {label:'Waste',data:totW,type:'line',borderColor:'#dc2626',backgroundColor:'#dc262618',borderWidth:2,pointRadius:4,tension:.3,fill:true,yAxisID:'y2',order:1}
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:8}}},
+    scales:{y:{position:'left',ticks:{font:{size:9}},grid:{color:'#f0f2f5'}},
+            y2:{position:'right',ticks:{font:{size:9},color:'#dc2626'},grid:{display:false}},
+            x:{ticks:{font:{size:10}},grid:{color:'#f0f2f5'}}}}});
+}
+
+function buildAnalyticGPct(id, recs, allGrps, filterVariant) {
+  destroyChart(id);
+  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const data = allGrps.map(g => {
+    let totC=0, totW=0;
+    recs.filter(r=>r.header?.group===g).forEach(r=>{
+      Object.entries(r.lineShared||{}).forEach(([line,sh])=>{
+        const vars = Object.keys(sh.outputByVariant||{});
+        if(filterVariant!=='all' && !vars.includes(filterVariant)) return;
+        (r.counter?.[line]||[]).forEach(mc=>{ totC+=ni(mc.counter); });
+        (r.entries||[]).filter(e=>e.line===line).forEach(e=>{ totW+=totalWaste(e.waste||{}); });
+      });
+    });
+    return totC>0?(totW/totC*100).toFixed(2):0;
+  });
+  const colors = data.map(v=>+v>5?'#dc2626bb':+v>2?'#d97706bb':'#16a34abb');
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:allGrps.map(g=>'Grup '+g),datasets:[
+    {label:'% Waste/Counter',data,backgroundColor:colors,borderColor:colors.map(c=>c.replace('bb','')),borderWidth:1},
+    {label:'Target 2%',data:allGrps.map(()=>2),type:'line',borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
+    {label:'Batas 5%',data:allGrps.map(()=>5),type:'line',borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
+  ]},options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:8}},tooltip:{callbacks:{label:c=>c.dataset.label==='% Waste/Counter'?`${c.parsed.y}%`:null}}},
+    scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'},
+      title:{display:true,text:'% Waste/Counter',font:{size:9}}}}}});
+}
+
+function buildAnalyticGVPct(id, vgm, allGrps, allVars, filterVariant) {
+  destroyChart(id);
+  const ctx = document.getElementById(id)?.getContext('2d'); if(!ctx) return;
+  const vars = filterVariant!=='all' ? [filterVariant] : allVars.slice(0,6);
+  const GRP_COLORS = ['#2563eb','#16a34a','#d97706','#7c3aed','#0891b2','#dc2626'];
+  const datasets = allGrps.map((g,gi)=>({
+    label: 'Grup '+g,
+    data: vars.map(v=>{
+      const d = vgm[v]?.[g];
+      return d && d.counter>0 ? +(d.waste/d.counter*100).toFixed(2) : 0;
+    }),
+    backgroundColor: GRP_COLORS[gi]+'88',
+    borderColor: GRP_COLORS[gi],
+    borderWidth:1.5
+  }));
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels:vars,datasets},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:8}}},
+      scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'},
+        title:{display:true,text:'% Waste/Counter',font:{size:9}}}}}});
 }
 
 // ══════════════════════════════════════════════
