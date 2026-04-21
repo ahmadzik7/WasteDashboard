@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>WasteHub Analytics</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -227,6 +228,23 @@ select.fi{cursor:pointer;}
 .pbar-bg{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;flex:1;min-width:60px;}
 .pbar-fill{height:100%;border-radius:3px;transition:width .3s;}
 
+/* ── EXCEL IMPORTER ── */
+.xl-drop{border:2px dashed var(--bdr2);border-radius:var(--r2);padding:28px 20px;text-align:center;cursor:pointer;transition:all .18s;background:var(--s2);position:relative;}
+.xl-drop:hover,.xl-drop.drag{border-color:var(--grn);background:var(--grn-l);}
+.xl-drop-icon{font-size:36px;margin-bottom:8px;}
+.xl-drop-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:4px;}
+.xl-drop-sub{font-size:11px;color:var(--tx2);}
+.xl-preview{margin-top:12px;max-height:220px;overflow-y:auto;border:1px solid var(--bdr);border-radius:var(--r);}
+.xl-preview table{border-collapse:collapse;width:100%;font-size:10px;}
+.xl-preview th{background:var(--s3);padding:5px 8px;font-weight:700;font-size:9px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;border-bottom:1px solid var(--bdr);}
+.xl-preview td{padding:4px 8px;border-bottom:1px solid var(--bdr);white-space:nowrap;}
+.xl-preview tr:hover td{background:var(--acc-l);}
+.xl-stat{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+.xl-stat-item{background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:6px 12px;font-size:11px;}
+.xl-stat-item b{color:var(--acc);}
+.xl-log{margin-top:8px;max-height:120px;overflow-y:auto;background:#1e1e2e;color:#cdd6f4;border-radius:var(--r);padding:10px;font-family:var(--mono);font-size:10px;line-height:1.7;}
+.xl-log .ok{color:#a6e3a1;}.xl-log .warn{color:#f9e2af;}.xl-log .err{color:#f38ba8;}
+
 /* ── ANALYTIC FILTER PANEL ── */
 .af-panel{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);padding:12px 16px;margin-bottom:14px;box-shadow:var(--sh);display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
 .af-group{display:flex;flex-direction:column;gap:4px;}
@@ -349,6 +367,11 @@ select.fi{cursor:pointer;}
           <div class="sc-title">Input Manual</div>
           <div class="sc-sub">Entry data dari kertas langsung ke dashboard</div>
         </div>
+        <div class="source-card" id="sc-excel" onclick="selectSource('excel-src')" style="border-color:var(--grn);background:var(--grn-l)">
+          <div class="sc-icon">📊</div>
+          <div class="sc-title" style="color:var(--grn)">Import Excel</div>
+          <div class="sc-sub">Upload file .xlsx historis sesuai template WasteHub</div>
+        </div>
       </div>
 
       <!-- DRIVE SECTION -->
@@ -436,6 +459,31 @@ function readFile(fileId) {
         </div>
       </div>
 
+      <!-- EXCEL IMPORT SRC -->
+      <div id="src-excel-src" style="display:none">
+        <div class="banner ban-grn" style="margin-bottom:12px">
+          📊 Upload file <b>.xlsx</b> sesuai template WasteHub. Dashboard akan otomatis konversi ke sesi data.
+          <a href="#" onclick="downloadTemplate();return false" style="margin-left:8px;font-weight:700;text-decoration:underline">⬇ Download Template Excel</a>
+        </div>
+        <div class="xl-drop" id="xl-drop"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleXlDrop(event)">
+          <div class="xl-drop-icon">📊</div>
+          <div class="xl-drop-title">Drag &amp; drop file .xlsx di sini</div>
+          <div class="xl-drop-sub">atau klik tombol di bawah untuk pilih file</div>
+          <input type="file" id="xl-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleXlFile(this)"/>
+          <button class="btn btn-g btn-sm" style="margin-top:10px" onclick="document.getElementById('xl-file-input').click()">📂 Pilih File Excel</button>
+        </div>
+        <div id="xl-log" class="xl-log" style="display:none"></div>
+        <div id="xl-stat" class="xl-stat" style="display:none"></div>
+        <div id="xl-preview" class="xl-preview" style="display:none"></div>
+        <div class="m-acts" style="margin-top:12px">
+          <button class="btn btn-g" id="btn-load-xl" onclick="loadXlData()" disabled>✓ Muat Data Excel ke Dashboard</button>
+          <button class="btn btn-sm" onclick="clearXlImport()">✕ Bersihkan</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -461,10 +509,10 @@ function readFile(fileId) {
 // ══════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════
-const WT = ["Gagal Filling Kotor Dalam","Gagal Filling Sobek","Gagal Filling Tersealing",
-  "Pouch Bocor","Pouch Kembung","Tidak Ada Cooling","Berat Over/Under",
+const WT = ["Gagal Filling Kotor Dalam","Gagal Filling Tersealing",
+  "Pouch Bocor","Pouch Kembung","Gagal Filling Kembung","Berat Over/Under",
   "Sealing NG","Seal Ngetrap","Bocor Pouch Sobek"];
-const GFV = ["77g","550g","1000g","270g","725g","77BB"];
+const GFV = ["77g","77BB","250g","270g","550g","700g","725g","1000g"];
 const KL = [
   {id:"LC1",l:"LC1",v:"77YB",t:1},{id:"LC2",l:"LC2",v:"77YB",t:1},
   {id:"LC3",l:"LC3",v:"77YB",t:1},{id:"LC3B",l:"LC3(77BB)",v:"77BB",t:1},
@@ -478,9 +526,9 @@ const LC = {
   C2:{m:["D1","D2","D7","D8"],    v:["77yb"]},
   C3:{m:["D9","D10","D12","D14"], v:["77yb","77bb"]},
   C5:{m:["D11","D13","D16","D17"],v:["77bb"]},
-  D2:{m:["F1"],                   v:["250","270"]},
-  D3:{m:["F2"],                   v:["550","700","725","1000"]},
-  D4:{m:["F3"],                   v:["550","700","725","1000"]},
+  D2:{m:["D15"],                  v:["250","270"]},
+  D3:{m:["F1"],                   v:["550","700","725","1000"]},
+  D4:{m:["F3","F2"],              v:["550","700","725","1000"]},
 };
 const PPB = {"77yb":48,"77bb":48,"250":24,"270":24,"550":12,"700":12,"725":12,"1000":12};
 const ALL_LINES = Object.keys(LC);
@@ -1210,8 +1258,8 @@ function buildPct(id,labs,pd){
   const pc=pd.map(v=>v>5?'#dc2626':v>2?'#d97706':'#16a34a');
   charts[id]=new Chart(ctx,{type:'line',data:{labels:labs,datasets:[
     {label:'% Waste',data:pd,borderColor:'#d97706',backgroundColor:'#d9770612',borderWidth:2,pointRadius:4,pointBackgroundColor:pc,tension:.3,fill:true},
-    {label:'Target 0.4%',data:labs.map(()=>0.4),borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
-    {label:'Batas 0.7%',data:labs.map(()=>0.7),borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
+    {label:'Target 2%',data:labs.map(()=>2),borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
+    {label:'Batas 5%',data:labs.map(()=>5),borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
   ]},options:{responsive:true,maintainAspectRatio:true,
     plugins:{legend:{labels:{font:{size:11},boxWidth:10,padding:12}}},
     scales:{y:{min:0,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'}},
@@ -1832,8 +1880,8 @@ function buildAnalyticGPct(id, recs, allGrps, filterVariant) {
   const colors = data.map(v=>+v>5?'#dc2626bb':+v>2?'#d97706bb':'#16a34abb');
   charts[id]=new Chart(ctx,{type:'bar',data:{labels:allGrps.map(g=>'Grup '+g),datasets:[
     {label:'% Waste/Counter',data,backgroundColor:colors,borderColor:colors.map(c=>c.replace('bb','')),borderWidth:1},
-    {label:'Target 0.4%',data:allGrps.map(()=>0.4),type:'line',borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
-    {label:'Batas 0.7%',data:allGrps.map(()=>0.7),type:'line',borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
+    {label:'Target 2%',data:allGrps.map(()=>2),type:'line',borderColor:'#16a34a',borderDash:[5,3],borderWidth:1.5,pointRadius:0},
+    {label:'Batas 5%',data:allGrps.map(()=>5),type:'line',borderColor:'#dc2626',borderDash:[5,3],borderWidth:1.5,pointRadius:0}
   ]},options:{responsive:true,maintainAspectRatio:true,
     plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:8}},tooltip:{callbacks:{label:c=>c.dataset.label==='% Waste/Counter'?`${c.parsed.y}%`:null}}},
     scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'#f0f2f5'},
@@ -2024,7 +2072,7 @@ function exportCSV(){
 let activeSource='';
 function selectSource(s){
   activeSource=s;
-  ['drive','upload','manual-src'].forEach(x=>{
+  ['drive','upload','manual-src','excel-src'].forEach(x=>{
     document.getElementById('sc-'+x)?.classList.toggle('active',x===s);
     document.getElementById('src-'+x).style.display=x===s?'block':'none';
   });
@@ -2090,6 +2138,307 @@ function showToast(msg,type='ok'){
     setTimeout(refreshData, 500);
   }
 })();
+
+// ══════════════════════════════════════════════
+// EXCEL IMPORT — SheetJS converter
+// ══════════════════════════════════════════════
+let xlParsedRecords = [];
+
+function handleXlDrop(e){
+  e.preventDefault();
+  document.getElementById('xl-drop').classList.remove('drag');
+  const file = [...e.dataTransfer.files].find(f=>f.name.match(/\.xlsx?$/i));
+  if(file) parseXlFile(file);
+}
+function handleXlFile(el){
+  const file = el.files[0];
+  if(file) parseXlFile(file);
+  el.value='';
+}
+
+function xlLog(msg, type='ok'){
+  const el=document.getElementById('xl-log');
+  el.style.display='block';
+  el.innerHTML += `<div class="${type}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearXlImport(){
+  xlParsedRecords=[];
+  document.getElementById('xl-log').innerHTML='';
+  document.getElementById('xl-log').style.display='none';
+  document.getElementById('xl-stat').style.display='none';
+  document.getElementById('xl-preview').style.display='none';
+  document.getElementById('xl-stat').innerHTML='';
+  document.getElementById('xl-preview').innerHTML='';
+  document.getElementById('btn-load-xl').disabled=true;
+  document.getElementById('xl-file-input').value='';
+}
+
+async function parseXlFile(file){
+  clearXlImport();
+  xlLog(`📂 Membaca file: ${file.name} (${(file.size/1024).toFixed(1)} KB)...`);
+  try {
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf, {type:'array', cellDates:true});
+    xlLog(`✓ File terbaca. Sheet ditemukan: ${wb.SheetNames.join(', ')}`);
+
+    // ── Cari sheet utama data harian ──
+    const mainSheet = wb.SheetNames.find(n=>n.replace(/[^a-zA-Z]/g,'').toUpperCase().includes('DATAHARIAN'))
+                   || wb.SheetNames.find(n=>n.includes('DATA'))
+                   || wb.SheetNames[0];
+    xlLog(`📝 Menggunakan sheet: "${mainSheet}"`);
+    const ws = wb.Sheets[mainSheet];
+    const raw = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+    if(!raw.length){ xlLog('⚠ Sheet kosong atau tidak ada data baris.','warn'); return; }
+
+    // ── Normalize header keys (strip emoji, trim, lower) ──
+    function normKey(k){ return k.replace(/[^\w\s/]/g,'').trim().toLowerCase().replace(/\s+/g,'_'); }
+    const rows = raw.map(r=>{
+      const o={};
+      Object.entries(r).forEach(([k,v])=>{ o[normKey(k)]=v; });
+      return o;
+    });
+
+    xlLog(`📋 Total baris data: ${rows.length}`);
+
+    // ── Build sessions grouped by (date, group, shift) ──
+    const sessionMap = {};
+
+    // ── Sheet lain ──
+    const lineSheet  = wb.SheetNames.find(n=>n.replace(/[^a-zA-Z]/g,'').toUpperCase().includes('RINGKASAN')
+                                          || n.toUpperCase().includes('LINE'));
+    const gfSheet    = wb.SheetNames.find(n=>n.toUpperCase().includes('GF'));
+    const kardSheet  = wb.SheetNames.find(n=>n.toUpperCase().includes('KARDUS'));
+
+    // ── Parse line summary ──
+    const lineData = {}; // key: date|group|shift|line → {variant, outputByVariant:{}}
+    if(lineSheet){
+      xlLog(`📊 Membaca sheet: "${lineSheet}"`);
+      const lws = wb.Sheets[lineSheet];
+      const lraw = XLSX.utils.sheet_to_json(lws, {defval:'', raw:false});
+      lraw.forEach(r=>{
+        const o={}; Object.entries(r).forEach(([k,v])=>{ o[normKey(k)]=v; });
+        const date  = fmtXlDate(o.tanggal || o.date || o.tgl || '');
+        const group = String(o.grup || o.group || o.grp || '').trim().toUpperCase();
+        const shift = String(o.shift || '1').trim();
+        const line  = String(o.line || '').trim().toUpperCase();
+        const variant = String(o.varian || o.variant || '').trim().toLowerCase();
+        const boxes = parseInt(o.output_box || o.box || 0)||0;
+        if(!date||!line) return;
+        const sk = `${date}|${group}|${shift}`;
+        const obv = {};
+        if(variant && boxes) obv[variant] = boxes;
+        lineData[`${sk}|${line}`] = {variant, outputByVariant: obv,
+          sampelQC: parseInt(o.sampel_qc||0)||0,
+          slQC: parseInt(o.sl_qc||0)||0,
+          hasilHeater: parseFloat(o.hasil_heater||0)||0,
+          wasteFilling: parseInt(o.waste_filling||0)||0};
+      });
+      xlLog(`  → ${Object.keys(lineData).length} record line`);
+    }
+
+    // ── Parse GF data ──
+    const gfData = {}; // key: date|group|shift → {varian:{close,open}}
+    if(gfSheet){
+      xlLog(`⚠️ Membaca sheet: "${gfSheet}"`);
+      const gws = wb.Sheets[gfSheet];
+      const graw = XLSX.utils.sheet_to_json(gws, {defval:'', raw:false});
+      graw.forEach(r=>{
+        const o={}; Object.entries(r).forEach(([k,v])=>{ o[normKey(k)]=v; });
+        const date  = fmtXlDate(o.tanggal || '');
+        const group = String(o.grup || o.group || '').trim().toUpperCase();
+        const shift = String(o.shift || '1').trim();
+        if(!date) return;
+        const sk = `${date}|${group}|${shift}`;
+        if(!gfData[sk]) gfData[sk]={};
+        const GFV_LOCAL = ["77g","77BB","250g","270g","550g","700g","725g","1000g"];
+        GFV_LOCAL.forEach(v=>{
+          const vk = v.toLowerCase().replace(/[^a-z0-9]/g,'');
+          const closeKey = Object.keys(o).find(k=>k.includes(vk)&&k.includes('close'));
+          const openKey  = Object.keys(o).find(k=>k.includes(vk)&&k.includes('open'));
+          if(closeKey||openKey){
+            gfData[sk][v] = {
+              close: parseInt(o[closeKey]||0)||0,
+              open:  parseInt(o[openKey] ||0)||0
+            };
+          }
+        });
+      });
+      xlLog(`  → ${Object.keys(gfData).length} record GF`);
+    }
+
+    // ── Parse Kardus data ──
+    const kardData = {}; // key: date|group|shift → {lineId:{total}}
+    if(kardSheet){
+      xlLog(`📦 Membaca sheet: "${kardSheet}"`);
+      const kws = wb.Sheets[kardSheet];
+      const kraw = XLSX.utils.sheet_to_json(kws, {defval:'', raw:false});
+      const KL_LOCAL = ["LC1","LC2","LC3","LC3B","LC5","LD1","LD2","LD4","LD3","LD5","LD6"];
+      kraw.forEach(r=>{
+        const o={}; Object.entries(r).forEach(([k,v])=>{ o[normKey(k)]=v; });
+        const date  = fmtXlDate(o.tanggal || '');
+        const group = String(o.grup || o.group || '').trim().toUpperCase();
+        const shift = String(o.shift || '1').trim();
+        if(!date) return;
+        const sk = `${date}|${group}|${shift}`;
+        if(!kardData[sk]) kardData[sk]={};
+        KL_LOCAL.forEach(kid=>{
+          const kk = Object.keys(o).find(k=>k.toLowerCase().includes(kid.toLowerCase())&&k.includes('total'));
+          if(kk){ kardData[sk][kid]={total: parseInt(o[kk]||0)||0, causes:{}}; }
+        });
+      });
+      xlLog(`  → ${Object.keys(kardData).length} record kardus`);
+    }
+
+    // ── Build entries from main data ──
+    const WT_LOCAL = ["Gagal Filling Kotor Dalam","Gagal Filling Tersealing",
+  "Pouch Bocor","Pouch Kembung","Gagal Filling Kembung","Berat Over/Under",
+  "Sealing NG","Seal Ngetrap","Bocor Pouch Sobek"];
+
+    rows.forEach((r, ri) => {
+      const date  = fmtXlDate(r.tanggal || r.date || r.tgl || '');
+      const group = String(r.grup || r.group || r.grp || '').trim().toUpperCase();
+      const shift = String(r.shift || '1').trim();
+      const line  = String(r.line || '').trim().toUpperCase();
+      const mesin = String(r.mesin || r.machine || r.mach || '').trim().toUpperCase();
+      const variant = String(r.varian || r.variant || '').trim().toLowerCase();
+      const counter = parseInt(r.counter || 0)||0;
+
+      if(!date){ xlLog(`⚠ Baris ${ri+2}: tanggal kosong, dilewati.`,'warn'); return; }
+      if(!line){ xlLog(`⚠ Baris ${ri+2}: kolom Line kosong, dilewati.`,'warn'); return; }
+
+      const sk = `${date}|${group}|${shift}`;
+      if(!sessionMap[sk]){
+        sessionMap[sk] = {
+          savedAt: new Date().toISOString(),
+          _fromExcel: true,
+          header: {date, group, shift},
+          lineShared: {},
+          entries: [],
+          counter: {},
+          gf: gfData[sk] || {},
+          kardus: kardData[sk] || {}
+        };
+      }
+      const sess = sessionMap[sk];
+
+      // lineShared
+      if(line && !sess.lineShared[line]){
+        const lk = `${sk}|${line}`;
+        sess.lineShared[line] = lineData[lk] || {
+          variant: variant || '',
+          outputByVariant: variant ? {[variant]: 0} : {},
+          sampelQC:0, slQC:0, hasilHeater:0, wasteFilling:0
+        };
+      }
+      // Update outputByVariant jika ada info dari main sheet
+      if(variant && line){
+        const boxes = parseInt(r.output_box || r.output || 0)||0;
+        if(boxes && sess.lineShared[line]){
+          sess.lineShared[line].outputByVariant[variant] = (sess.lineShared[line].outputByVariant[variant]||0) + boxes;
+        }
+      }
+
+      // counter per mesin
+      if(mesin && counter){
+        if(!sess.counter[line]) sess.counter[line]=[];
+        const existing = sess.counter[line].find(x=>x.m===mesin);
+        if(existing) existing.counter += counter;
+        else sess.counter[line].push({m:mesin, counter, fg:''});
+      }
+
+      // waste entry
+      if(mesin){
+        const entryId = `${line}-${mesin}-xl`;
+        let entry = sess.entries.find(e=>e.id===entryId);
+        if(!entry){
+          entry = {id:entryId, line, machine:mesin, waste:{}};
+          sess.entries.push(entry);
+        }
+        WT_LOCAL.forEach(wt=>{
+          const wk = normKey(wt);
+          const val = parseInt(r[wk] || 0)||0;
+          if(val) entry.waste[wt] = (entry.waste[wt]||0) + val;
+        });
+      }
+    });
+
+    xlParsedRecords = Object.values(sessionMap);
+    xlLog(`\n✅ Konversi selesai: <b>${xlParsedRecords.length}</b> sesi dari <b>${rows.length}</b> baris data.`);
+    const totalEntries = xlParsedRecords.reduce((s,r)=>s+r.entries.length,0);
+    xlLog(`📊 Total: ${totalEntries} data mesin · ${Object.keys(gfData).length} GF · ${Object.keys(kardData).length} Kardus`);
+
+    // Preview
+    showXlPreview(rows.slice(0,5));
+    showXlStat(rows.length, xlParsedRecords.length);
+    document.getElementById('btn-load-xl').disabled = xlParsedRecords.length===0;
+
+  } catch(err){
+    xlLog('❌ Error: '+err.message,'err');
+    console.error(err);
+  }
+}
+
+function fmtXlDate(v){
+  if(!v) return '';
+  const s = String(v).trim();
+  // already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // DD/MM/YYYY or DD-MM-YYYY
+  const m1 = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if(m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  // Excel serial number (number)
+  if(/^\d+(\.\d+)?$/.test(s)){
+    try { const d=XLSX.SSF.parse_date_code(parseFloat(s)); return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`; } catch{}
+  }
+  // Try JS Date
+  const dt = new Date(s);
+  if(!isNaN(dt)) return dt.toISOString().split('T')[0];
+  return s;
+}
+
+function showXlPreview(rows){
+  if(!rows.length) return;
+  const cols = Object.keys(rows[0]).slice(0,12);
+  const thead = cols.map(k=>`<th>${k}</th>`).join('');
+  const tbody = rows.map(r=>`<tr>${cols.map(k=>`<td>${r[k]??''}</td>`).join('')}</tr>`).join('');
+  const el = document.getElementById('xl-preview');
+  el.style.display='block';
+  el.innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+}
+
+function showXlStat(rows, sessions){
+  const el = document.getElementById('xl-stat');
+  el.style.display='flex';
+  el.innerHTML = `
+    <div class="xl-stat-item">📋 Baris data: <b>${rows}</b></div>
+    <div class="xl-stat-item">📅 Sesi terdeteksi: <b>${sessions}</b></div>
+    <div class="xl-stat-item" style="color:var(--grn);border-color:var(--grn)">✓ Siap dimuat</div>
+  `;
+}
+
+function loadXlData(){
+  if(!xlParsedRecords.length){ showToast('Belum ada data Excel yang diproses','err'); return; }
+  uploadedRecords = [...uploadedRecords, ...xlParsedRecords];
+  mergeAll();
+  document.getElementById('sync-lbl').textContent = uploadedRecords.length+' sesi';
+  closeModal('m-config');
+  showToast(`✓ ${xlParsedRecords.length} sesi dari Excel berhasil dimuat`,'ok');
+  xlParsedRecords=[];
+  clearXlImport();
+  renderView();
+}
+
+// Download template — generate minimal guide sheet on-the-fly if no file available
+function downloadTemplate(){
+  showToast('⬇ Download template… gunakan file WasteHub_Template_Import.xlsx','ok');
+  // Arahkan ke file template jika tersedia, otherwise show instructions
+  const a = document.createElement('a');
+  // If template file is available as data URL embed, use it — otherwise show message
+  showToast('📌 Gunakan file WasteHub_Template_Import.xlsx yang sudah disediakan bersama dashboard ini.','warn');
+}
+
 </script>
 </body>
 </html>
